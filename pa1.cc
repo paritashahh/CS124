@@ -53,14 +53,14 @@ class indexed_priority_queue {
     };
 
     void increaseKey(int ki, float value) {
-        if less(values[ki], value) {
+        if (less(values[ki], value)) {
             values[ki] = value;
             sink(pm[ki]);
         }
     };
 
     void decreaseKey(int ki, float value) {
-        if less(value, values[ki]) {
+        if (less(value, values[ki])) {
             values[ki] = value;
             swim(pm[ki]);
         }
@@ -72,7 +72,7 @@ class indexed_priority_queue {
         float tmp = im[i];
         im[i] = im[j];
         im[j] = tmp;
-    };
+    }
 
     void insert(int ki, float value) {
         values[ki] = value;
@@ -80,11 +80,11 @@ class indexed_priority_queue {
         pm[ki] = sz;
         im[sz] = ki;
         swim(sz);
-        sz = sz + 1
-    };
+        sz = sz + 1;
+    }
 
     void remove(int ki) {
-        i = pm[ki];
+        int i = pm[ki];
         swap(i, sz);
         sink(i);
         swim(i);
@@ -106,12 +106,7 @@ struct nodes {
     float weight;
 } ;
 
-vector<nodes> queue;
-void queue() {
-    for (int i = 0; i < numpoints; i++) {
-        if (i != graph_2)
-    }
-}
+vector<nodes> node;
 
 float rand_sample() {
 	return ((float) rand() / (float) RAND_MAX);
@@ -129,24 +124,41 @@ float eucl_dist(float v1[], float v2[], int dim) {
     return sqrt(sum);
 }
 
+numpoints= 5;
+float vertices[numpoints][2];
+
 //represent graph as an array in which the rows = numpoints columns = elements of euclidian dis calculation
-float graph_2d(int dim, int numpoints, float vertices[][2]) {
+float *graph_2d(int dim, int numpoints, float vertices[][2]) {
     for (int i = 0; i < numpoints; i++) {
         for (int j = 1; j < dim; j ++) {
             vertices[i][j] = rand_sample();
         }
     } 
-    return vertices;
+    return reinterpret_cast<float *>(vertices);
+}
+
+
+//represent 2-4 dim graph as an adjacency matrix
+void adj_mat(vector <pair<int, float> > adj[], float v1[], float v2[], int dim) {
+    for (int i = 0; i < numpoints; i++) {
+        for (int j = 0; j < numpoints; j++) {
+            if (j != i) {
+                float dist = eucl_dist(vertices[i], vertices[j], dim)
+                adj[i].push_back(make_pair(j, wt));
+                adj[j].push_back(make_pair(i, wt));
+            }
+        }
+    }
 }
 
 
 //modiy one d case to generate edges on the fly 
 //represent graph as an array where rows and columns = vertices
 //weights = values (adjacency matrix representation)
-float graph_od(int numpoints) {
-/* initialize random seed: */
-  srand (time(NULL));
-   float vertices[numpoints][numpoints];
+float *graph_od(int numpoints) {
+    /* initialize random seed: */
+    srand (time(NULL));
+    float vertices[numpoints][numpoints];
     for (int i = 0; i < numpoints; i++) {
         for (int j = 1; j < numpoints; j ++) {
             if (i == j) {
@@ -157,7 +169,7 @@ float graph_od(int numpoints) {
             vertices[j][i] = val;
         }
     }
-    return vertices; 
+    return reinterpret_cast<float *>(vertices); 
 }
 
 
@@ -203,6 +215,7 @@ bool visited = gen_visit(numpoints);
             }
         }
     }
+
     pair eager_Prims(s = 0) {
         int m = n - 1;
         int edgeCount, mstCount = 0, 0;
