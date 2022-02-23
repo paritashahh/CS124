@@ -124,7 +124,7 @@ float eucl_dist(float v1[], float v2[], int dim) {
     return sqrt(sum);
 }
 
-numpoints= 5;
+int numpoints= 5;
 float vertices[numpoints][2];
 
 //represent graph as an array in which the rows = numpoints columns = elements of euclidian dis calculation
@@ -137,20 +137,19 @@ float *graph_2d(int dim, int numpoints, float vertices[][2]) {
     return reinterpret_cast<float *>(vertices);
 }
 
-
 //represent 2-4 dim graph as an adjacency matrix
-void adj_mat(vector <pair<int, float> > adj[], float v1[], float v2[], int dim) {
+vector <pair<int, float> > adj_mat(vector <pair<int, float> > adj[], float v1[], float v2[], int dim) {
     for (int i = 0; i < numpoints; i++) {
         for (int j = 0; j < numpoints; j++) {
             if (j != i) {
-                float dist = eucl_dist(vertices[i], vertices[j], dim)
-                adj[i].push_back(make_pair(j, wt));
-                adj[j].push_back(make_pair(i, wt));
+                float dist = eucl_dist(vertices[i], vertices[j], dim);
+                adj[i].push_back(make_pair(j, dist));
+                adj[j].push_back(make_pair(i, dist));
             }
         }
     }
+    return *adj;
 }
-
 
 //modiy one d case to generate edges on the fly 
 //represent graph as an array where rows and columns = vertices

@@ -8,6 +8,7 @@
 #include <cmath>
 #include <tuple>
 #include <stdexcept>
+#include <algorithm>
 
 using namespace std;
 
@@ -166,13 +167,10 @@ public:
 };
 
 
-struct nodes {
-    int from; 
-    int to;
-    float weight;
-} ;
 
 float rand_sample() {
+    /* initialize random seed: */
+    srand (time(NULL));
 	return ((float) rand() / (float) RAND_MAX);
 }
 
@@ -188,7 +186,7 @@ float eucl_dist(float v1[], float v2[], int dim) {
     return sqrt(sum);
 }
 
-int numpoints= 5;
+int numpoints= 128;
 float two_dvertices[128][2];
 float three_dvertices[128][3];
 float four_dvertices[128][4];
@@ -235,8 +233,6 @@ void graph_4d(int dim, int numpoints) {
 
 //weights = values (adjacency matrix representation)
 void graph_od(int numpoints) {
-    /* initialize random seed: */
-    srand (time(NULL));
     float one_dweights[numpoints][numpoints];
     for (int i = 0; i < numpoints; i++) {
         for (int j = 1; j < numpoints; j ++) {
@@ -250,50 +246,29 @@ void graph_od(int numpoints) {
     }
 }
 
-// void prim(int numpoints) {
-//     IndexPrioQueue prioqueue(numpoints);
-//     float one_d = *graph_od(numpoints);
+bool visited_list(int numpoints) {
+    bool visited[numpoints];
+     for (int i = 0; i < numpoints; i++) {
+    visited[i] = false;
+    }
+    return visited;
+}
 
-//     //keep track of previous vertex in tree
-//     //int prev[numpoints];
-//     int key[numpoints];
-//     bool mstSet[numpoints];
-    
-//     //initially, all distances are infinity 
-//     for (int i = 0; i < numpoints; i++) {
-//         key[i] = INT_MAX;
-//         mstSet[i] = false;
-//     }
-// }
-
-//only store them and compute them when you need to
-//as you add a node to MST, add on their edges, with vertices that aren't there, determine minimum
-//pruning priority heap
-//undirected only using half 
-//only store minimum edge to particular vertex
-//store all the nodes, store it as a tuple, where its from at first
+bool mst_list(int numpoints) {
+    bool mst_Edges[numpoints - 1];
+    for (int i = 0; i < m; i++) {
+    mst_Edges[i] = false;
+    }
+    return mst_Edges;
+}
 
 IndexPrioQueue prioqueue(numpoints);
 int m = numpoints - 1;
 int edge_count = 0;
 int mst_cost = 0;
-bool visited[5];
-bool visit() {
-    for (int i = 0; i < m; i++) {
-    visited[i] = false;
-    }
-    return visited;
-}
-bool visited = visit();
-
-bool mstEdges[4];
-bool mst() {
-    for (int i = 0; i < m; i++) {
-    mstEdges[i] = false;
-    }
-    return mstEdges;
-}
-bool mstEdges = mst();
+bool visited = visited_list(numpoints);
+bool mstEdges = mst_list(numpoints);
+int s = 0;
 
 void relax(int s) {
         visited[s] = true;
@@ -314,21 +289,6 @@ void relax(int s) {
 
 float eager_Prims(int numpoints) {
         int s = 0;
-        //IndexPrioQueue prioqueue(numpoints);
-        // int m = numpoints - 1;
-        // int edge_count = 0;
-        // int mst_cost = 0;
-
-        // bool visited[numpoints];
-        // for (int i = 0; i < m; i++) {
-        //     visited[i] = false;
-        // }
-
-        // bool mstEdges[m];
-        // for (int i = 0; i < m; i++) {
-        //     mstEdges[i] = false;
-        // }
-        
         relax(s);
 
         while (prioqueue.is_empty() and edge_count != m) {
@@ -343,7 +303,3 @@ float eager_Prims(int numpoints) {
         }
         return mst_cost;
     }
-
-    //make eager prims a class and make a helper function be relax 
-
-    
