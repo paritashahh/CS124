@@ -8,178 +8,114 @@
 #include <cmath>
 #include <tuple>
 #include <stdexcept>
+#include <algorithm>
+#include <cstdio>
+#include <tuple>
 
 using namespace std;
 
 class IndexPrioQueue {
 
-    //heap is im, index is pm, keys is value
     //pm maps the vertex to the node
-    //im maps the node to the verte
+    //im maps the node to the vertex
     //value maps the vertex to the weight 
-    int MAX, sz, *values, *im, *pm;
+    int SZ;
+    vector<int> im;
+    vector<int> pm;
+    vector<tuple<int, int, float> > values;
 
-    //compare values, return true if value at index i < value at index j
-    //compare values for different keys
-    bool comp(int i, int j) {
-        return (values[im[i]] < values[im[j]]);
-    }
-
-    //swap the position of two values in the heap
     void swap(int i, int j) {
-        pm[im[j]] = i;
-        pm[im[i]] = j;
-        float tmp = im[i];
-        im[i] = im[j];
-        im[j] = tmp;
+        int temp = im[i];
+        im[i] = im[j]; 
+        im[j] = temp;
+        pm[im[i]] = i; 
+        pm[im[j]] = j;
     }
 
-    //move up in heap
     void shift_up(int i) {
-        for (int j = parent(i); i > 0 && comp(i, j); j = parent(i)) {
+        while(i > 1 && get<2>(values[im[i/2]]) > get<2>(values[im[i]])) {
+            swap(i, i / 2);
+            i = i / 2;
+        }
+    }
+
+    void shift_down(int i) {
+        int j;
+        int child = 2 * i;
+        while (child <= SZ) {
+            j = child;
+            if(j < SZ && get<2>(values[im[j]]) > get<2>(values[im[j+1]])) {
+                j++;
+            }
+            if(values[im[i]] <= values[im[j]]) {
+                break;
+            }
             swap(i, j);
             i = j;
         }
     }
 
-    //move down in heap
-    void shift_down(int i) {
-        while (true) {
-            int smallest = left_kid(i);
-            if (right_kid(i) < sz && comp(right_kid(i), left_kid(i))) {
-                smallest = right_kid(i);
-            }
-            if (left_kid(i) >= sz || comp(i, smallest)) {
-                break;
-            }
-            swap(smallest, i);
-            i = smallest;
-        }
-    }
-
 public:
-    //index priority queue initialization
-    //heap can contain at max n - 1 elements 
     //constructor
-    IndexPrioQueue(int MAX) {
-        this->MAX = MAX;
-        sz = 0;
-        values = new int[MAX + 1];
-        im = new int[MAX + 1];
-        pm = new int[MAX + 1];
-        for (int i = 0; i < (MAX + 1); i++) {
-            pm[i] = -1;
-        }
+    IndexPrioQueue() {
+        SZ = 0;
+        fill(pm.begin(), pm.end(), -1);
     }
 
-    //destructor
-    ~IndexPrioQueue() {
-        delete [] values;
-        delete [] im;
-        delete [] pm;
-    } 
+    // check whether or not heap is empty
+    bool is_empty() {
+        return SZ == 0;
+    }
 
     //check whether or not there is a node associated with that key
-    bool contains(int i) {
-        if (pm[i] == -1) {
-            return false;
-        }
-        else {
-            return true;
-        }
+    bool contains(int ki) {
+        return pm[ki] != -1;
     }
 
-    //return size of heap
+    // // size of heap
     // int size() {
-    //     sz;
+    //     return SZ;
     // }
 
-    //get parent of node
-    int parent(int i) {
-        return ((i - 1) / 2);
-    }
-
-    //get left child of node
-    int left_kid(int i) {
-        return ((2 * i) + 1);
-    }
-
-    //get right child of node
-    int right_kid(int i) {
-        return ((2 * i) + 2);
-    }
-
-    //check whether or not the heap is empty
-    bool is_empty() {
-        return sz == 0;
-    }
-
     //insert new pair, making sure to satify heap invariant
-    void insert(int ki, float value) {
-        values[ki] = value;
-        pm[ki] = sz;
-        im[sz] = ki;
-        shift_up(sz);
-        sz++;
+    void insert(int i, int ki, float value) {
+        SZ++;
+        pm[ki] = SZ;
+        im[SZ] = ki;
+        values[ki] = make_tuple(i, ki, value);
+        shift_up(SZ);
     }
 
-    //delete pair, making sure to satisfy heap invariant
-    void remove(int ki) {
-        int i = pm[ki];
-        swap(i, sz);
-        shift_down(i);
-        shift_up(i);
-        values[ki] = -1;
-        pm[ki] = -1;
-        im[sz] = -1;
-    }
-
-    //increase key value
-    void increaseKey(int ki, float value) {
-        values[ki] = value;
-        shift_down(pm[ki]);
-    }
-
-    //decrease key value
-    void decreaseKey(int ki, float value) {
-        values[ki] = value;
-        shift_up(pm[ki]);
-    }
-
-    //update value, then make sure heap invariant is still satisfied
-    void update(int ki, float value) {
-        int i = pm[ki];
-        values[ki] = value;
-        shift_down(i);
-        shift_up(i);
-    }
-
-    pair<int, float> dequeue() {
+    //remove top element from priority queue
+    tuple<int, int, float> dequeue() {
         int min = im[1];
-        int min_weight = values[min];
-        swap(1, sz);
+        tuple<int, int, float> min_weight = values[min];
+        swap(1, SZ--);
         shift_down(1);
-        im[min] = -1;
-        pm[sz] = -1;
-        return make_pair(min, min_weight);
+        pm[min] = -1;
+        im[SZ+1] = -1;
+        return min_weight;
+    }
+
+    //decrease key value (ensuring heap invariant is satisfied)
+    void decreaseKey(int s, int ki, float value) {
+        //can do euclidian distnace on the fly here
+        if (value < get<2>(values[ki])) {
+            values[ki] = make_tuple(s, ki, value);
+            shift_up(pm[ki]);
+        }
     }
 };
 
-
-struct nodes {
-    int from; 
-    int to;
-    float weight;
-} ;
-
+//redeed the random sample generator
+//generate random sample weight 
 float rand_sample() {
 	return ((float) rand() / (float) RAND_MAX);
 }
 
-//store the randomly computed dimensions in an array
 //this will calculate euclidian distances
 //v1 and v2 will be rows of the graph matrix
-float eucl_dist(float v1[], float v2[], int dim) {
+float eucl_dist(vector<float> v1, vector<float> v2, int dim) {
     float sum = 0;
     for (int i = 0; i < dim; i++) {
         float a = v2[i] - v1[i];
@@ -188,162 +124,190 @@ float eucl_dist(float v1[], float v2[], int dim) {
     return sqrt(sum);
 }
 
-int numpoints= 5;
-float two_dvertices[128][2];
-float three_dvertices[128][3];
-float four_dvertices[128][4];
-float one_dweights[128][128];
-
-//represent graph as an array in which the rows = numpoints columns = elements of euclidian dis calculation
-void graph_2d(int dim, int numpoints) {
+//represent graph as an array in which the rows = numpoints 
+// columns = elements of euclidian dis calculation
+vector<vector<float> > graph_md(int dim, int numpoints) {
+    vector<vector<float> > graph(numpoints, vector<float>(dim));
     for (int i = 0; i < numpoints; i++) {
         for (int j = 1; j < dim; j ++) {
-            two_dvertices[i][j] = rand_sample();
+            graph[i][j] = rand_sample();
         }
-    } 
+    }
+    return graph; 
 }
-
-void graph_3d(int dim, int numpoints) {
-    for (int i = 0; i < numpoints; i++) {
-        for (int j = 1; j < dim; j ++) {
-            three_dvertices[i][j] = rand_sample();
-        }
-    } 
-}
-
-void graph_4d(int dim, int numpoints) {
-    for (int i = 0; i < numpoints; i++) {
-        for (int j = 1; j < dim; j ++) {
-            four_dvertices[i][j] = rand_sample();
-        }
-    } 
-}
-
-//represent 2-4 dim graph as an adjacency matrix
-// vector <pair<int, float> > adj_mat(vector <pair<int, float> > adj[], float v1[], float v2[], int dim) {
-//     for (int i = 0; i < numpoints; i++) {
-//         for (int j = 0; j < numpoints; j++) {
-//             if (j != i) {
-//                 float dist = eucl_dist(vertices[i], vertices[j], dim);
-//                 adj[i].push_back(make_pair(j, dist));
-//                 adj[j].push_back(make_pair(i, dist));
-//             }
-//         }
-//     }
-//     return *adj;
-// }
 
 //weights = values (adjacency matrix representation)
-void graph_od(int numpoints) {
-    /* initialize random seed: */
-    srand (time(NULL));
-    float one_dweights[numpoints][numpoints];
+vector<vector<float> > graph_od(int numpoints) {
+    vector<vector<float> > graph(numpoints, vector<float>(numpoints));
     for (int i = 0; i < numpoints; i++) {
-        for (int j = 1; j < numpoints; j ++) {
+        for (int j = 0; j < numpoints; j++) {
             if (i == j) {
-                one_dweights[i][j] = 0;
+                graph[i][j] = -1;
             }
             int val = rand_sample();
-            one_dweights[i][j] = val;
-            one_dweights[j][i] = val;
+            graph[i][j] = val;
+            graph[j][i] = val;
         }
     }
+    return graph;
 }
 
-// void prim(int numpoints) {
-//     IndexPrioQueue prioqueue(numpoints);
-//     float one_d = *graph_od(numpoints);
-
-//     //keep track of previous vertex in tree
-//     //int prev[numpoints];
-//     int key[numpoints];
-//     bool mstSet[numpoints];
-    
-//     //initially, all distances are infinity 
-//     for (int i = 0; i < numpoints; i++) {
-//         key[i] = INT_MAX;
-//         mstSet[i] = false;
-//     }
-// }
-
-//only store them and compute them when you need to
-//as you add a node to MST, add on their edges, with vertices that aren't there, determine minimum
-//pruning priority heap
-//undirected only using half 
-//only store minimum edge to particular vertex
-//store all the nodes, store it as a tuple, where its from at first
-
-IndexPrioQueue prioqueue(numpoints);
-int m = numpoints - 1;
-int edge_count = 0;
-int mst_cost = 0;
-bool visited[5];
-bool visit() {
-    for (int i = 0; i < m; i++) {
-    visited[i] = false;
+//create adjacency matrix for the multidimensional graph
+vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, int dim) {
+    vector<vector<float> > adj(numpoints, vector<float>(numpoints));
+    for (int i = 0; i < numpoints; i++) {
+        for (int j = 0; j < numpoints; j ++) {
+            //if both vertices same (index i = index j) then no edge between them
+            if (i == j) {
+                adj[i][j] = -1;
+            }
+            else {
+                //compute euclidian distance between points at row i and j
+                int val = eucl_dist(graph[i], graph[j], dim);
+                //could include pruning here
+                adj[i][j] = val;
+                adj[j][i] = val;
+            }
+        }
     }
-    return visited;
+    return adj;
 }
-bool visited = visit();
 
-bool mstEdges[4];
-bool mst() {
-    for (int i = 0; i < m; i++) {
-    mstEdges[i] = false;
-    }
-    return mstEdges;
-}
-bool mstEdges = mst();
-
-void relax(int s) {
+//put vertex on priority queue
+//if there already exists an incoming edge to that vertex, check if current val is < 
+//if current val is <, update, else do nothing
+//if there doesn't exist an incoming edge to that vertex
+//add edge to graph
+void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph) {
         visited[s] = true;
-        float* outgoing_edges = one_dweights[s];
+        vector<float> outgoing_edges = graph[s];
         for (int i = 0; i < (numpoints - 1); i ++) {
             int destNode = i;
             if (visited[destNode]) {
             continue;
             }
             if (!prioqueue.contains(destNode)) {
-                prioqueue.insert(destNode, outgoing_edges[i]);
+                prioqueue.insert(s, destNode, outgoing_edges[i]);
             }
             else {
-                prioqueue.decreaseKey(destNode, outgoing_edges[i]);
+                prioqueue.decreaseKey(s, destNode, outgoing_edges[i]);
             }
         }
 }
 
-float eager_Prims(int numpoints) {
-        int s = 0;
-        //IndexPrioQueue prioqueue(numpoints);
-        // int m = numpoints - 1;
-        // int edge_count = 0;
-        // int mst_cost = 0;
-
-        // bool visited[numpoints];
-        // for (int i = 0; i < m; i++) {
-        //     visited[i] = false;
-        // }
-
-        // bool mstEdges[m];
-        // for (int i = 0; i < m; i++) {
-        //     mstEdges[i] = false;
-        // }
-        
-        relax(s);
-
-        while (prioqueue.is_empty() and edge_count != m) {
-            pair<int, float> deq = prioqueue.dequeue();
-            int destNode = deq.first;
-            float edge = deq.second;
-
-            mstEdges[edge_count++] = edge;
-            mst_cost += edge;
-
-            relax(destNode);
-        }
-        return mst_cost;
+//iterate through graph
+//add first vertex to priority queue (add all of it's OUTgoing edges too)
+//now, pick the smallest edge (aka top of prioqeue) and set that as destination node
+//add edge to mst_cost
+//now repeat process, making new "s" the destination node
+vector<tuple<int, int, float> > eager_Prims(int numpoints, vector<vector<float> > graph) {
+    IndexPrioQueue prioqueue;
+    int m = numpoints - 1;
+    int edge_count = 0;
+    //int mst_cost = 0;
+    //create array of length numpoints
+    //indicate whether or not vertex has been visited
+    bool visited[numpoints];
+    for (int i = 0; i < numpoints; i++) {
+        visited[i] = false;
     }
+    //for final mst, vector of tuples
+    //node from, node to, edge weight
+    vector<tuple<int, int, float> > mstEdges(m);
+    int s = 0;
+        relax(s, numpoints, visited, prioqueue, graph);
 
-    //make eager prims a class and make a helper function be relax 
+        while (!prioqueue.is_empty() and edge_count != m) {
+            tuple<int, int, float> deq = prioqueue.dequeue();
+            int srcNode = get<0>(deq);
+            int destNode = get<1>(deq);
+            float edge = get<2>(deq);
 
-    
+            mstEdges.push_back(deq); //change to push_back
+            //mst_cost += edge;
+
+            relax(destNode, numpoints, visited, prioqueue, graph);
+        }
+        return mstEdges;
+}
+
+//function to sum up costs of MST
+float sum_cost (vector<tuple<int, int, float> > edges) {
+    float sum = 0;
+    for (int i = 0; i != edges.size(); i++) {
+        tuple<int, int, float> edg = edges[i];
+        sum+= get<2>(edg);
+    }
+    return sum;
+}
+
+//function to get average from all trials
+float trial_avg (float vals[], int numtrials) {
+    float sum = 0;
+    for (int i = 0; i < numtrials; i++) {
+        sum+= vals[i];
+    }
+    return sum / numtrials;
+}
+
+//function to print adjacency matrix
+void print_graph (vector<vector<float> > graph) {
+    for (int i = 0; i < graph.size(); i++) {
+        for (int j = 0; j < graph[i].size(); j++) {
+            cout << graph[i][j];
+        }
+    }
+}
+
+float run_trials (int numpoints, int numtrials, int dimension) {
+    //keep track of total cost of mst during each trial 
+    float cost[numtrials];
+    for (int i = 0; i < numtrials; i++) {
+        vector<vector<float> > adj_mat;
+        if (dimension == 0) {
+            adj_mat = graph_od(numpoints);
+        }
+        else {
+            //generate vertices of graph
+            vector<vector<float> > vertices = graph_md(dimension, numpoints);
+            //create adjacency matrix and calculate weights
+            adj_mat = graph_mod(vertices, numpoints, dimension);
+        }
+        //use prims alg to find mst
+        vector<tuple<int, int, float> > mst = eager_Prims(numpoints, adj_mat);
+        //calculate cost of mst
+        float sum = sum_cost(mst);
+        //depending on dimemsion, add to total cost of mst
+    }
+    return trial_avg(cost, numtrials);
+}
+
+int main() {
+
+    int numpoints;
+    int numtrials;
+    int dimensions; 
+    run_trials(numpoints, numtrials, dimensions);
+    return 0;
+
+    //cost should be 0.3 with edges going from 1-2 and 2-3
+    vector<vector<float> > test_1 
+        {{-1, 0.1, 0.3},
+        {0.1, -1, 0.2},
+        {0.3, 0.2, -1}};
+
+    //cost should be 0.9 with edges going from 1-2, 2-3, and 3-4
+    vector<vector<float> > test_2 
+        {{-1, 0.2, 0.5, 0.1},
+        {0.2, -1, 0.3, 0.6},
+        {0.5, 0.3, -1, 0.4},
+        {0.1, 0.6, 0.4, -1}};
+
+    //cost should be 1 with edges going from 1-2, 2-3, 3-4, 4-5
+    vector<vector<float> > test_3
+        {{-1, 0.1, 0.6, 0.7, 0.5},
+        {0.1, -1, 0.2, 0.85, 0.8},
+        {0.6, 0.2, -1, 0.3, 0.9},
+        {0.7, 0.85, 0.3, -1, 0.4},
+        {0.5, 0.8, 0.9, 0.4, -1}};
+}

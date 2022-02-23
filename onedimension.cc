@@ -9,6 +9,7 @@
 #include <tuple>
 #include <stdexcept>
 #include <algorithm>
+#include <sys/time.h>
 
 using namespace std;
 
@@ -137,14 +138,18 @@ public:
 
     //increase key value
     void increaseKey(int ki, float value) {
-        values[ki] = value;
-        shift_down(pm[ki]);
+        if (comp(values[ki], value)) {
+            values[ki] = value;
+            shift_down(pm[ki]);
+        }
     }
 
     //decrease key value
     void decreaseKey(int ki, float value) {
-        values[ki] = value;
-        shift_up(pm[ki]);
+        if (comp(value, values[ki])) {
+            values[ki] = value;
+            shift_up(pm[ki]);
+        }
     }
 
     //update value, then make sure heap invariant is still satisfied
@@ -169,8 +174,6 @@ public:
 
 
 float rand_sample() {
-    /* initialize random seed: */
-    srand (time(NULL));
 	return ((float) rand() / (float) RAND_MAX);
 }
 
@@ -191,6 +194,7 @@ float two_dvertices[128][2];
 float three_dvertices[128][3];
 float four_dvertices[128][4];
 float one_dweights[128][128];
+tuple<int, int, float> graph;
 
 //represent graph as an array in which the rows = numpoints columns = elements of euclidian dis calculation
 void graph_2d(int dim, int numpoints) {
@@ -246,31 +250,7 @@ void graph_od(int numpoints) {
     }
 }
 
-bool visited_list(int numpoints) {
-    bool visited[numpoints];
-     for (int i = 0; i < numpoints; i++) {
-    visited[i] = false;
-    }
-    return visited;
-}
-
-bool mst_list(int numpoints) {
-    bool mst_Edges[numpoints - 1];
-    for (int i = 0; i < m; i++) {
-    mst_Edges[i] = false;
-    }
-    return mst_Edges;
-}
-
-IndexPrioQueue prioqueue(numpoints);
-int m = numpoints - 1;
-int edge_count = 0;
-int mst_cost = 0;
-bool visited = visited_list(numpoints);
-bool mstEdges = mst_list(numpoints);
-int s = 0;
-
-void relax(int s) {
+void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, graph[]) {
         visited[s] = true;
         float* outgoing_edges = one_dweights[s];
         for (int i = 0; i < (numpoints - 1); i ++) {
@@ -287,11 +267,23 @@ void relax(int s) {
         }
 }
 
-float eager_Prims(int numpoints) {
-        int s = 0;
-        relax(s);
+float eager_Prims(int numpoints, graph[]) {
+    IndexPrioQueue prioqueue(numpoints);
+    int m = numpoints - 1;
+    int edge_count = 0;
+    int mst_cost = 0;
+    bool visited[numpoints];
+    for (int i = 0; i < numpoints; i++) {
+        visited[i] = false;
+    }
+    bool mstEdges[m];
+    for (int i = 0; i < m; i++) {
+        mstEdges[i] = false;
+    }
+    int s = 0;
+        relax(s, numpoints, visited, prioqueue);
 
-        while (prioqueue.is_empty() and edge_count != m) {
+        while (!prioqueue.is_empty() and edge_count != m) {
             pair<int, float> deq = prioqueue.dequeue();
             int destNode = deq.first;
             float edge = deq.second;
@@ -299,7 +291,33 @@ float eager_Prims(int numpoints) {
             mstEdges[edge_count++] = edge;
             mst_cost += edge;
 
-            relax(destNode);
+            relax(destNode, numpoints, visited, prioqueue);
         }
         return mst_cost;
+}
+
+
+int create_graph(int numpoints, int dim, graph[]) {
+    //seed random num generator
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srand((unsigned) tv.tv_usec);
+
+    if (dim == 0) {
+        return graph_od(numpoints, graph);
     }
+    else {
+        return graph_md(dum, numpoints, graph)
+    }
+}
+
+
+int main (int argc, char *argv[]) {
+    time_t start = time(NULL);
+
+    int flag = (int) strtol(argv[1], NULL, 10);
+    int numpoints = (int) strtol(argv[2], NULL, 10);
+    int numtrials = (int) strtol(argv[3], NULL, 10);
+    int dimension = (int) strtol(argv[4], NULL, 10);
+
+}
