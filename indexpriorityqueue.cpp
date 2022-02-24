@@ -210,6 +210,61 @@ void print_graph (vector<vector<float> > graph) {
     myfile.close();
 }
 
+
+bool threshold_check (int numpoints, int dim, float val) {
+    float threshold = 0;
+    if (numpoints == 128 && dim == 2) {
+        threshold = 0.3;
+    }   
+    if (numpoints == 128 && dim == 3) {
+        threshold = 0.4;
+    }
+    if (numpoints == 128 && dim == 4) {
+        threshold = 0.5;
+    }
+    if (numpoints == 256 && dim == 2) {
+        threshold = 0.2;
+    }
+    if (numpoints == 256 && dim == 3) {
+        threshold = 0.3;
+    }
+    if (numpoints == 256 && dim == 4) {
+        threshold = 0.4;
+    }
+    if (numpoints == 512 && dim == 2) {
+        threshold = 0.1;
+    }
+    if (numpoints == 512 && dim == 3) {
+        threshold = 0.25;
+    }
+    if (numpoints == 512 && dim == 4) {
+        threshold = 0.3;
+    }
+    if (numpoints == 1024 && dim == 2) {
+        threshold = 0.07;
+    }
+    if (numpoints == 1024 && dim == 3) {
+        threshold = 0.2;
+    }
+    if (numpoints == 1024 && dim == 4) {
+        threshold = 0.3;
+    }
+    if (numpoints == 2048 && dim == 2) {
+        threshold = 0.05;
+    }
+    if (numpoints >= 2048 && dim == 3) {
+        threshold = 0.2;
+    }
+    if (numpoints >= 2048 && dim == 4) {
+        threshold = 0.25;
+    }
+    if (numpoints >= 4096 && dim == 2) {
+        threshold = 0.05;
+    }
+    return val > threshold;
+}
+
+
 //put vertex on priority queue
 //if there already exists an incoming edge to that vertex, check if current val is < 
 //if current val is <, update, else do nothing
@@ -222,14 +277,16 @@ IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqu
         for (int i = 0; i < numpoints; i++) {
             int destNode = i;
             //if we've already visited the destination node, skip this iteration of loop
-            if (visited[destNode]) {
-            continue;
-            }
+            float val = 0;
+            float threshold = 0;
             if (dim != 0) {
                 val = eucl_dist(graph[s], graph[i], dim);
             }
             else {
                 val = outgoing_edges[i];
+            }
+            if (visited[destNode] || s == i || (threshold_check(numpoints, dim, val))) {
+            continue;
             }
             if (!prioqueue.contains(destNode)) {
                  prioqueue.insert(s, destNode, val);
@@ -326,29 +383,39 @@ float run_trials (int numpoints, int numtrials, int dimension) {
 int main() {
     ofstream myfile;
     myfile.open("data_generation.txt");
-    int numpoints = 5;
+    int numpoints = 0;
     int numtrials = 1000;
-    int dimensions = 0; 
-    myfile << "numpoints = 5, numtrials = 3, dimensions = 0 case\n";
-    myfile << "avg cost was" << endl;
-    float avg = run_trials(numpoints, numtrials, dimensions);
-    myfile << avg << endl;
-    dimensions = 2; 
-    myfile << "numpoints = 5, numtrials = 3, dimensions = 2 case" << endl;
-    avg = run_trials(numpoints, numtrials, dimensions);
-    myfile << "average weight was " << avg << endl;
-    dimensions = 3; 
-    myfile << "numpoints = 5, numtrials = 3, dimensions = 3 case" << endl;
-    avg = run_trials(numpoints, numtrials, dimensions);
-    myfile << "average weight was " << avg << endl;
-    dimensions = 4; 
-    myfile << "numpoints = 5, numtrials = 3, dimensions = 4 case" << endl;
-    avg = run_trials(numpoints, numtrials, dimensions);
-    myfile << "average weight was " << avg << endl;
-    myfile << "0D avg " << run_trials(5, 5, 0) << endl;
-    myfile << "2D avg " << run_trials(5, 5, 0) << endl;
-    myfile << "3D avg " << run_trials(5, 5, 0) << endl;
-    myfile << "4D avg " << run_trials(5, 5, 0) << endl;
+    int dimensions = 2; 
+    //graph_od(numpoints);
+    vector<vector<float> > g1 = graph_md(2, numpoints);
+    //graph_mod(g1, numpoints, 2);
+    vector<vector<float> > g2 = graph_md(3, numpoints);
+    //graph_mod(g2, numpoints, 3);
+    vector<vector<float> > g3 = graph_md(4, numpoints);
+    //graph_mod(g3, numpoints, 4);
+    eager_Prims(numpoints, g1, 2);
+    eager_Prims(numpoints, g2, 3);
+    eager_Prims(numpoints,g3, 4);
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 0 case\n";
+    // myfile << "avg cost was" << endl;
+    // float avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << avg << endl;
+    // dimensions = 2; 
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 2 case" << endl;
+    // avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << "average weight was " << avg << endl;
+    // dimensions = 3; 
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 3 case" << endl;
+    // avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << "average weight was " << avg << endl;
+    // dimensions = 4; 
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 4 case" << endl;
+    // avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << "average weight was " << avg << endl;
+    // myfile << "0D avg " << run_trials(5, 5, 0) << endl;
+    // myfile << "2D avg " << run_trials(5, 5, 0) << endl;
+    // myfile << "3D avg " << run_trials(5, 5, 0) << endl;
+    // myfile << "4D avg " << run_trials(5, 5, 0) << endl;
     myfile.close();
     return 0;
 

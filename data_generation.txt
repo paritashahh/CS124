@@ -1,2 +1,0 @@
-numpoints = 5, numtrials = 3, dimensions = 0 case
-avg cost was
