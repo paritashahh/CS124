@@ -33,10 +33,12 @@ class IndexPrioQueue {
     }
 
     void shift_up(int i) {
+        printf("%d", i);
         while(i > 1 && get<2>(values[im[i/2]]) > get<2>(values[im[i]])) {
             swap(i, i / 2);
             i = i / 2;
         }
+        printf("hey");
     }
 
     void shift_down(int i) {
@@ -57,9 +59,14 @@ class IndexPrioQueue {
 
 public:
     //constructor
-    IndexPrioQueue() {
+    IndexPrioQueue(int N) {
         SZ = 0;
-        fill(pm.begin(), pm.end(), -1);
+        for (int i = 0; i < N; i++) {
+            pm[i] = -1;
+            im[i] = -1;
+            printf("%d", pm[i]);
+            printf("%d", im[i]);
+        }
     }
 
     // check whether or not heap is empty
@@ -72,17 +79,17 @@ public:
         return pm[ki] != -1;
     }
 
-    // // size of heap
-    // int size() {
-    //     return SZ;
-    // }
+    // size of heap
+    int size() {
+        return SZ;
+    }
 
     //insert new pair, making sure to satify heap invariant
     void insert(int i, int ki, float value) {
-        SZ++;
-        pm[ki] = SZ;
-        im[SZ] = ki;
-        values[ki] = make_tuple(i, ki, value);
+        //SZ++;
+        //pm[ki] = SZ;
+        //im[SZ] = ki;
+        //values[ki] = make_tuple(i, ki, value);
         shift_up(SZ);
     }
 
@@ -129,7 +136,7 @@ float eucl_dist(vector<float> v1, vector<float> v2, int dim) {
 vector<vector<float> > graph_md(int dim, int numpoints) {
     vector<vector<float> > graph(numpoints, vector<float>(dim));
     for (int i = 0; i < numpoints; i++) {
-        for (int j = 1; j < dim; j ++) {
+        for (int j = 0; j < dim; j ++) {
             graph[i][j] = rand_sample();
         }
     }
@@ -144,7 +151,7 @@ vector<vector<float> > graph_od(int numpoints) {
             if (i == j) {
                 graph[i][j] = -1;
             }
-            int val = rand_sample();
+            float val = rand_sample();
             graph[i][j] = val;
             graph[j][i] = val;
         }
@@ -163,7 +170,7 @@ vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, in
             }
             else {
                 //compute euclidian distance between points at row i and j
-                int val = eucl_dist(graph[i], graph[j], dim);
+                float val = eucl_dist(graph[i], graph[j], dim);
                 //could include pruning here
                 adj[i][j] = val;
                 adj[j][i] = val;
@@ -173,14 +180,33 @@ vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, in
     return adj;
 }
 
+//function to print adjacency matrix
+void print_graph (vector<vector<float> > graph) {
+    for (int i = 0; i < graph.size(); i++) {
+        for (int j = 0; j < graph[i].size(); j++) {
+            cout << graph[i][j] << " ";
+        }
+        cout << endl;
+    }
+}
+
 //put vertex on priority queue
 //if there already exists an incoming edge to that vertex, check if current val is < 
 //if current val is <, update, else do nothing
 //if there doesn't exist an incoming edge to that vertex
 //add edge to graph
-void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph) {
+void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph, int dim) {
         visited[s] = true;
-        vector<float> outgoing_edges = graph[s];
+        vector<float> outgoing_edges;
+        for (int i = 0; i < numpoints; i++) {
+            if (visited[s] == true || i == s) {
+                outgoing_edges[i] = -1;
+            }
+            else if (visited[s] != true && i != s) {
+                outgoing_edges[i] = eucl_dist(graph[s], graph[i], dim);
+            }
+        }
+        //vector<float> outgoing_edges = graph[s];
         for (int i = 0; i < (numpoints - 1); i ++) {
             int destNode = i;
             if (visited[destNode]) {
@@ -200,8 +226,8 @@ void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vecto
 //now, pick the smallest edge (aka top of prioqeue) and set that as destination node
 //add edge to mst_cost
 //now repeat process, making new "s" the destination node
-vector<tuple<int, int, float> > eager_Prims(int numpoints, vector<vector<float> > graph) {
-    IndexPrioQueue prioqueue;
+vector<tuple<int, int, float> > eager_Prims(int numpoints, vector<vector<float> > graph, int dim) {
+    IndexPrioQueue prioqueue(numpoints);
     int m = numpoints - 1;
     int edge_count = 0;
     //int mst_cost = 0;
@@ -215,18 +241,18 @@ vector<tuple<int, int, float> > eager_Prims(int numpoints, vector<vector<float> 
     //node from, node to, edge weight
     vector<tuple<int, int, float> > mstEdges(m);
     int s = 0;
-        relax(s, numpoints, visited, prioqueue, graph);
+        relax(s, numpoints, visited, prioqueue, graph, dim);
 
         while (!prioqueue.is_empty() and edge_count != m) {
             tuple<int, int, float> deq = prioqueue.dequeue();
-            int srcNode = get<0>(deq);
+            //int srcNode = get<0>(deq);
             int destNode = get<1>(deq);
-            float edge = get<2>(deq);
+            //float edge = get<2>(deq);
 
             mstEdges.push_back(deq); //change to push_back
             //mst_cost += edge;
 
-            relax(destNode, numpoints, visited, prioqueue, graph);
+            relax(destNode, numpoints, visited, prioqueue, graph, dim);
         }
         return mstEdges;
 }
@@ -250,15 +276,6 @@ float trial_avg (float vals[], int numtrials) {
     return sum / numtrials;
 }
 
-//function to print adjacency matrix
-void print_graph (vector<vector<float> > graph) {
-    for (int i = 0; i < graph.size(); i++) {
-        for (int j = 0; j < graph[i].size(); j++) {
-            cout << graph[i][j];
-        }
-    }
-}
-
 float run_trials (int numpoints, int numtrials, int dimension) {
     //keep track of total cost of mst during each trial 
     float cost[numtrials];
@@ -274,21 +291,20 @@ float run_trials (int numpoints, int numtrials, int dimension) {
             adj_mat = graph_mod(vertices, numpoints, dimension);
         }
         //use prims alg to find mst
-        vector<tuple<int, int, float> > mst = eager_Prims(numpoints, adj_mat);
+        vector<tuple<int, int, float> > mst = eager_Prims(numpoints, adj_mat, dimension);
         //calculate cost of mst
-        float sum = sum_cost(mst);
+        //float sum = sum_cost(mst);
         //depending on dimemsion, add to total cost of mst
     }
     return trial_avg(cost, numtrials);
 }
 
 int main() {
-
-    int numpoints;
-    int numtrials;
-    int dimensions; 
-    run_trials(numpoints, numtrials, dimensions);
-    return 0;
+    //int numpoints = 1;
+    //int numtrials = 1;
+    //int dimensions = 0; 
+    //run_trials(numpoints, numtrials, dimensions);
+    // return 0;
 
     //cost should be 0.3 with edges going from 1-2 and 2-3
     vector<vector<float> > test_1 
@@ -310,4 +326,71 @@ int main() {
         {0.6, 0.2, -1, 0.3, 0.9},
         {0.7, 0.85, 0.3, -1, 0.4},
         {0.5, 0.8, 0.9, 0.4, -1}};
+
+    vector<vector<float> > rand_1 = graph_od(3);
+
+    vector<vector<float> > rand_2 = graph_md(2, 3);
+
+    vector<vector<float> > rand_3 = graph_md(3, 3);
+
+    vector<vector<float> > rand_4 = graph_md(4, 3);
+
+    cout << "test_1";
+    print_graph(test_1);
+    cout << endl;
+    cout << "test_2";
+    print_graph(test_2);
+    cout << endl;
+    cout << "test_3";
+    print_graph(test_3);
+    cout << endl;
+    cout << "testing onedimensional";
+    srand ( time(NULL) );
+    cout << endl;
+    print_graph(rand_1);
+    cout << endl;
+    cout << "hey hey lets do more dimensiosn!";
+    cout << endl;
+    print_graph(rand_2);
+    cout << endl;
+    cout << "a third!!";
+    cout << endl;
+    print_graph(rand_3);
+    cout << endl;
+    cout << "a fourth!!";
+    cout << endl;
+    print_graph(rand_4);
+    cout << endl;
+    cout <<"now lets get some adjacency matrices!!";
+    cout <<endl << endl;
+    cout <<"graph 2d";
+    cout << endl;
+    print_graph(graph_mod(rand_2, 3, 2));
+    cout << endl;
+    cout <<"graph 3d";
+    cout << endl;
+    print_graph(graph_mod(rand_3, 3, 3));
+    cout << endl;
+    cout <<"graph 4d";
+    cout << endl;
+    print_graph(graph_mod(rand_4, 3, 4));
+
+    IndexPrioQueue prioqueue(3);
+    printf("%d", prioqueue.size());
+    prioqueue.insert(0, 1, 0.1);
+    prioqueue.insert(1, 2, 0.2);
+    prioqueue.insert(2, 3, 0.3);
+
+    // tuple<int, int, float> deq = prioqueue.dequeue();
+    // int srcNode = get<0>(deq);
+    // int destNode = get<1>(deq);
+    // float edge = get<2>(deq);
+    // printf("%d", srcNode);
+    // printf("%d", destNode);
+    // printf("%f", edge);
+    //bool visited[3] = {false};
+    //relax(0, 3, visited, prioqueue, rand_2, 2);
+
+    //eager_Prims(3, rand_2, 2);
+    //segmentation fault is in prim's
 }

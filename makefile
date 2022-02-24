@@ -1,21 +1,12 @@
-CC=clang
-CFLAGS= -Wall -g
+CC=g++
+CFLAGS= -std=c++11
 
 all: randmst
 
-randmst: pa1.o indexpriorityqueue.o
-	$(CC) pa1.o indexpriorityqueue.o -o randmst
-
-test: indexpriorityqueue.o
-	$(CC) indexpriorityqueue.o -o randmst
-
-pa1.o: pa1.cc
-	$(CC) $(CFLAGS) pa1.cc
-
-indexpriorityqueue.o: indexpriorityqueue.cc
-	$(CC) $(CFLAGS) indexpriorityqueue.cc
+randmst:
+	$(CC) $(CFLAGS) indexpriorityqueue.cpp
 
 clean: 
 	rm *.o randmst
-	g++ -c pa1.cc indexpriorityqueue.cc
+	g++ -c indexpriorityqueue.cpp
 	

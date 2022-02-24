@@ -10,7 +10,7 @@
                 "/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/System/Library/Frameworks"
             ],
             "compilerPath": "/usr/bin/g++",
-            "cStandard": "c11",
+            "cStandard": "c17",
             "cppStandard": "c++11",
             "intelliSenseMode": "macos-clang-x64",
             "compilerArgs": []
