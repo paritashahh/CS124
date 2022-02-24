@@ -161,6 +161,21 @@ vector<vector<float> > graph_od(int numpoints) {
     return graph;
 }
 
+void max_weight(vector<vector<float> > graph) {
+    ofstream myfile;
+    myfile.open("maxweight.txt");
+    float max_weight = 0;
+    for (int i = 0; i < graph.size(); i++) {
+        for (int j = 0; j < graph.size(); j++) {
+            if (graph[i][j] > 0) {
+                max_weight = graph[i][j];
+            }
+        }
+    }
+    myfile << max_weight << endl;
+    myfile.close();
+}
+
 //create adjacency matrix for the multidimensional graph
 vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, int dim) {
     vector<vector<float> > adj(numpoints, vector<float>(numpoints));
@@ -184,12 +199,15 @@ vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, in
 
 //function to print adjacency matrix
 void print_graph (vector<vector<float> > graph) {
+    ofstream myfile;
+    myfile.open("graph_generation.txt");
     for (int i = 0; i < graph.size(); i++) {
         for (int j = 0; j < graph[i].size(); j++) {
-            cout << graph[i][j] << " ";
+            myfile << graph[i][j] << " ";
         }
-        cout << endl;
+        myfile << endl;
     }
+    myfile.close();
 }
 
 //put vertex on priority queue
@@ -197,20 +215,27 @@ void print_graph (vector<vector<float> > graph) {
 //if current val is <, update, else do nothing
 //if there doesn't exist an incoming edge to that vertex
 //add edge to graph
-IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph) {
+IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph, int dim) {
         visited[s] = true;
         vector<float> outgoing_edges = graph[s];
+        float val = 0;
         for (int i = 0; i < numpoints; i++) {
             int destNode = i;
             //if we've already visited the destination node, skip this iteration of loop
             if (visited[destNode]) {
             continue;
             }
-            if (!prioqueue.contains(destNode)) {
-                 prioqueue.insert(s, destNode, outgoing_edges[i]);
+            if (dim != 0) {
+                val = eucl_dist(graph[s], graph[i], dim);
             }
             else {
-                 prioqueue.decreaseKey(s, destNode, outgoing_edges[i]);
+                val = outgoing_edges[i];
+            }
+            if (!prioqueue.contains(destNode)) {
+                 prioqueue.insert(s, destNode, val);
+            }
+            else {
+                 prioqueue.decreaseKey(s, destNode, val);
             }
         }
         return prioqueue;
@@ -221,7 +246,7 @@ IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqu
 //now, pick the smallest edge (aka top of prioqeue) and set that as destination node
 //add edge to mst_cost
 //now repeat process, making new "s" the destination node
-float eager_Prims(int numpoints, vector<vector<float> > graph) {
+float eager_Prims(int numpoints, vector<vector<float> > graph, int dim) {
     IndexPrioQueue prioqueue(numpoints);
     int m = numpoints - 1;
     int edge_count = 0;
@@ -236,7 +261,7 @@ float eager_Prims(int numpoints, vector<vector<float> > graph) {
     //node from, node to, edge weight
     vector<tuple<int, int, float> > mstEdges(m);
     int s = 0;
-        prioqueue = relax(s, numpoints, visited, prioqueue, graph);
+        prioqueue = relax(s, numpoints, visited, prioqueue, graph, dim);
 
         while (!prioqueue.is_empty() and edge_count != m) {
             tuple<int, int, float> deq = prioqueue.dequeue();
@@ -248,7 +273,7 @@ float eager_Prims(int numpoints, vector<vector<float> > graph) {
             mstEdges.push_back(deq);
             mst_cost += edge;
 
-        prioqueue = relax(destNode, numpoints, visited, prioqueue, graph);
+        prioqueue = relax(destNode, numpoints, visited, prioqueue, graph, dim);
         }
         //return mstEdges;
         return mst_cost;
@@ -283,16 +308,16 @@ float run_trials (int numpoints, int numtrials, int dimension) {
         vector<vector<float> > adj_mat;
         if (dimension == 0) {
             adj_mat = graph_od(numpoints);
-            print_graph(adj_mat);
+            max_weight(adj_mat);
         }
         else {
             //generate vertices of graph
-            vector<vector<float> > vertices = graph_md(dimension, numpoints);
+            adj_mat = graph_md(dimension, numpoints);
             //create adjacency matrix and calculate weights
-            adj_mat = graph_mod(vertices, numpoints, dimension);
+            // adj_mat = graph_mod(vertices, numpoints, dimension);
         }
         //use prims alg to find mst
-        float mst = eager_Prims(numpoints, adj_mat);
+        float mst = eager_Prims(numpoints, adj_mat, dimension);
         cost[i] = mst;
     }
     return trial_avg(cost, numtrials);
@@ -301,29 +326,33 @@ float run_trials (int numpoints, int numtrials, int dimension) {
 int main() {
     ofstream myfile;
     myfile.open("data_generation.txt");
-    // int numpoints = 5;
-    // int numtrials = 3;
-    // int dimensions = 0; 
-    // myfile << "numpoints = 5, numtrials = 3, dimensions = 0 case\n";
-    // float avg = run_trials(numpoints, numtrials, dimensions);
-    // myfile << "average weight was " << avg << endl;
-    // dimensions = 2; 
-    // myfile << "numpoints = 5, numtrials = 3, dimensions = 2 case" << endl;
-    // avg = run_trials(numpoints, numtrials, dimensions);
-    // myfile << "average weight was " << avg << endl;
-    // dimensions = 3; 
-    // myfile << "numpoints = 5, numtrials = 3, dimensions = 3 case" << endl;
-    // avg = run_trials(numpoints, numtrials, dimensions);
-    // myfile << "average weight was " << avg << endl;
-    // dimensions = 4; 
-    // myfile << "numpoints = 5, numtrials = 3, dimensions = 4 case" << endl;
-    // avg = run_trials(numpoints, numtrials, dimensions);
-    // myfile << "average weight was " << avg << endl;
-    myfile << "avg " << run_trials(5, 5, 0) << endl;
+    int numpoints = 5;
+    int numtrials = 1000;
+    int dimensions = 0; 
+    myfile << "numpoints = 5, numtrials = 3, dimensions = 0 case\n";
+    myfile << "avg cost was" << endl;
+    float avg = run_trials(numpoints, numtrials, dimensions);
+    myfile << avg << endl;
+    dimensions = 2; 
+    myfile << "numpoints = 5, numtrials = 3, dimensions = 2 case" << endl;
+    avg = run_trials(numpoints, numtrials, dimensions);
+    myfile << "average weight was " << avg << endl;
+    dimensions = 3; 
+    myfile << "numpoints = 5, numtrials = 3, dimensions = 3 case" << endl;
+    avg = run_trials(numpoints, numtrials, dimensions);
+    myfile << "average weight was " << avg << endl;
+    dimensions = 4; 
+    myfile << "numpoints = 5, numtrials = 3, dimensions = 4 case" << endl;
+    avg = run_trials(numpoints, numtrials, dimensions);
+    myfile << "average weight was " << avg << endl;
+    myfile << "0D avg " << run_trials(5, 5, 0) << endl;
+    myfile << "2D avg " << run_trials(5, 5, 0) << endl;
+    myfile << "3D avg " << run_trials(5, 5, 0) << endl;
+    myfile << "4D avg " << run_trials(5, 5, 0) << endl;
     myfile.close();
     return 0;
 
-    //cost should be 0.3 with edges going from 1-2 and 2-3
+    // //cost should be 0.3 with edges going from 1-2 and 2-3
     // vector<vector<float> > test_1 
     //     {{-1, 0.1, 0.3},
     //     {0.1, -1, 0.2},
@@ -349,6 +378,13 @@ int main() {
     //     {0.6, 0.2, -1, 0.3, 0.9},
     //     {0.7, 0.85, 0.3, -1, 0.4},
     //     {0.5, 0.8, 0.9, 0.4, -1}};
+
+    // vector<vector<float> > testing
+    // {{0.1, 0.2},
+    // {0.3, 0.4}, 
+    // {0.5, 0.6}, 
+    // {0.7, 0.8}
+    // };
 
     // vector<vector<float> > rand_1 = graph_od(3);
 
@@ -415,6 +451,6 @@ int main() {
     // printf("%d\n", destNode);
     // printf("%f\n", edge);
 
-    // float cool = eager_Prims(5, test_3);
+    // float cool = eager_Prims(4, testing, 2);
     // printf("mst cost %f", cool);
 }
