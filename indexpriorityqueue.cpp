@@ -236,6 +236,7 @@ vector<vector<float> > graph_od(int numpoints) {
             float val = rand_sample();
             if (threshold_check(numpoints, 0, val)) {
                 graph[i][j] = -1;
+                graph[j][i] = -1;
             }
             else {
                 graph[i][j] = val;
@@ -273,9 +274,15 @@ vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, in
             else {
                 //compute euclidian distance between points at row i and j
                 float val = eucl_dist(graph[i], graph[j], dim);
+                if (threshold_check(numpoints, 0, val)) {
+                    adj[i][j] = -1;
+                    adj[j][i] = -1;
+                }
+                else {
+                    adj[i][j] = val;
+                    adj[j][i] = val;
+                }
                 //could include pruning here
-                adj[i][j] = val;
-                adj[j][i] = val;
             }
         }
     }
@@ -421,15 +428,16 @@ int main() {
 
     ofstream myfile;
     myfile.open("final data.txt");
-    vector<vector<float> > testing
-    {{0.1, 0.2, 0.3},
-    {0.25, 0.35, 0.36}, 
-    {0.44, 0.15, 0.22}, 
-    {0.14, 0.31, 0.21}
-    };
+//     vector<vector<float> > testing
+//     {{0.1, 0.2, 0.3},
+//     {0.25, 0.35, 0.36}, 
+//     {0.44, 0.15, 0.22}, 
+//     {0.14, 0.31, 0.21}
+//     };
 
- float cool = eager_Prims(4, testing, 3);
-    printf("mst cost %f", cool);
+//  float cool = eager_Prims(4, testing, 3);
+//     printf("mst cost %f", cool);
+    myfile << "numpoints = 256 dimension = 0 averge" << run_trials(100, 1, 0) << endl;
     // myfile << "numpoints = 128 dimension = 0 averge" << run_trials(128, 5, 0) << endl;
     // myfile << "numpoints = 128 dimension = 2 averge" << run_trials(128, 5, 2) << endl;
     // myfile << "numpoints = 128 dimension = 3 averge" << run_trials(128, 5, 3) << endl;
