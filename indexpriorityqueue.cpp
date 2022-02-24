@@ -213,6 +213,12 @@ void print_graph (vector<vector<float> > graph) {
 
 bool threshold_check (int numpoints, int dim, float val) {
     float threshold = 0;
+    if (numpoints <= 1024 && dim == 0) {
+        threshold = 0.1;
+    }  
+    if (numpoints > 1024 && dim == 0) {
+        threshold = 0.01;
+    }
     if (numpoints == 128 && dim == 2) {
         threshold = 0.3;
     }   
