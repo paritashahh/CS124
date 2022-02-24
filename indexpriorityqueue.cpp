@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <cstdio>
 #include <tuple>
+#include <fstream>
+#include <sys/time.h>
 
 using namespace std;
 
@@ -65,10 +67,8 @@ public:
         for (int i = 0; i < numpoints; i++) {
             im.push_back(-1);
             pm.push_back(-1);
-            values.push_back(make_tuple(0, 0, 0));
+            values.push_back(make_tuple(-1, -1, -1));
         }
-        printf("heyhey this my size bitches %lu", im.size());
-        printf("heyhey this my size bitches %lu", pm.size());
     }
 
     // check whether or not heap is empty
@@ -89,7 +89,6 @@ public:
     //insert new pair, making sure to satify heap invariant
     void insert(int i, int ki, float value) {
         SZ++;
-        printf("hi this is size %d ok", SZ);
         pm[ki] = SZ;
         im[SZ] = ki;
         values[ki] = make_tuple(i, ki, value);
@@ -110,14 +109,14 @@ public:
     //decrease key value (ensuring heap invariant is satisfied)
     void decreaseKey(int s, int ki, float value) {
         //can do euclidian distance on the fly here
-        if (value < get<2>(values[ki])) {
+        if (value < get<2>(values[ki]) && value != -1) {
             values[ki] = make_tuple(s, ki, value);
             shift_up(pm[ki]);
         }
     }
 };
 
-//redeed the random sample generator
+//reseed the random sample generator
 //generate random sample weight 
 float rand_sample() {
 	return ((float) rand() / (float) RAND_MAX);
@@ -198,8 +197,7 @@ void print_graph (vector<vector<float> > graph) {
 //if current val is <, update, else do nothing
 //if there doesn't exist an incoming edge to that vertex
 //add edge to graph
-void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph) {
-        printf("hey babe u look cute");
+IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph) {
         visited[s] = true;
         vector<float> outgoing_edges = graph[s];
         for (int i = 0; i < numpoints; i++) {
@@ -208,16 +206,14 @@ void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vecto
             if (visited[destNode]) {
             continue;
             }
-            printf("edge!! %f annddd it's index %d", outgoing_edges[i], destNode);
             if (!prioqueue.contains(destNode)) {
-                printf("should get here twice i think");
                  prioqueue.insert(s, destNode, outgoing_edges[i]);
             }
             else {
-                printf("should never get here");
                  prioqueue.decreaseKey(s, destNode, outgoing_edges[i]);
             }
         }
+        return prioqueue;
 }
 
 //iterate through graph
@@ -229,33 +225,30 @@ float eager_Prims(int numpoints, vector<vector<float> > graph) {
     IndexPrioQueue prioqueue(numpoints);
     int m = numpoints - 1;
     int edge_count = 0;
-    int mst_cost = 0;
+    float mst_cost = 0;
     //create array of length numpoints
     //indicate whether or not vertex has been visited
     bool visited[numpoints];
     for (int i = 0; i < numpoints; i++) {
         visited[i] = false;
     }
-    printf("whore szn");
     //for final mst, vector of tuples
     //node from, node to, edge weight
     vector<tuple<int, int, float> > mstEdges(m);
     int s = 0;
-    printf("whore2 szn");
-        relax(s, numpoints, visited, prioqueue, graph);
-        
+        prioqueue = relax(s, numpoints, visited, prioqueue, graph);
+
         while (!prioqueue.is_empty() and edge_count != m) {
-            printf("do we get here?");
             tuple<int, int, float> deq = prioqueue.dequeue();
             int srcNode = get<0>(deq);
             int destNode = get<1>(deq);
             float edge = get<2>(deq);
-            printf("edge from %d to %d with weight %f\n", srcNode, destNode, edge);
+            // printf("edge from %d to %d with weight %f\n", srcNode, destNode, edge);
 
-            mstEdges.push_back(deq); //change to push_back
+            mstEdges.push_back(deq);
             mst_cost += edge;
 
-        relax(destNode, numpoints, visited, prioqueue, graph);
+        prioqueue = relax(destNode, numpoints, visited, prioqueue, graph);
         }
         //return mstEdges;
         return mst_cost;
@@ -284,9 +277,13 @@ float run_trials (int numpoints, int numtrials, int dimension) {
     //keep track of total cost of mst during each trial 
     float cost[numtrials];
     for (int i = 0; i < numtrials; i++) {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        srand((unsigned) tv.tv_usec);
         vector<vector<float> > adj_mat;
         if (dimension == 0) {
             adj_mat = graph_od(numpoints);
+            print_graph(adj_mat);
         }
         else {
             //generate vertices of graph
@@ -295,107 +292,129 @@ float run_trials (int numpoints, int numtrials, int dimension) {
             adj_mat = graph_mod(vertices, numpoints, dimension);
         }
         //use prims alg to find mst
-        //vector<tuple<int, int, float> > mst = eager_Prims(numpoints, adj_mat);
+        float mst = eager_Prims(numpoints, adj_mat);
+        cost[i] = mst;
     }
     return trial_avg(cost, numtrials);
 }
 
 int main() {
-    //int numpoints = 1;
-    //int numtrials = 1;
-    //int dimensions = 0; 
-    //run_trials(numpoints, numtrials, dimensions);
-    // return 0;
+    ofstream myfile;
+    myfile.open("data_generation.txt");
+    // int numpoints = 5;
+    // int numtrials = 3;
+    // int dimensions = 0; 
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 0 case\n";
+    // float avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << "average weight was " << avg << endl;
+    // dimensions = 2; 
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 2 case" << endl;
+    // avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << "average weight was " << avg << endl;
+    // dimensions = 3; 
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 3 case" << endl;
+    // avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << "average weight was " << avg << endl;
+    // dimensions = 4; 
+    // myfile << "numpoints = 5, numtrials = 3, dimensions = 4 case" << endl;
+    // avg = run_trials(numpoints, numtrials, dimensions);
+    // myfile << "average weight was " << avg << endl;
+    myfile << "avg " << run_trials(5, 5, 0) << endl;
+    myfile.close();
+    return 0;
 
     //cost should be 0.3 with edges going from 1-2 and 2-3
-    vector<vector<float> > test_1 
-        {{-1, 0.1, 0.3},
-        {0.1, -1, 0.2},
-        {0.3, 0.2, -1}};
+    // vector<vector<float> > test_1 
+    //     {{-1, 0.1, 0.3},
+    //     {0.1, -1, 0.2},
+    //     {0.3, 0.2, -1}};
 
-    //cost should be 0.9 with edges going from 1-2, 2-3, and 3-4
-    vector<vector<float> > test_2 
-        {{-1, 0.2, 0.5, 0.1},
-        {0.2, -1, 0.3, 0.6},
-        {0.5, 0.3, -1, 0.4},
-        {0.1, 0.6, 0.4, -1}};
+    // //cost should be 0.15 with edges going from 0-1 and 1-2
+    // vector<vector<float> > test_4 
+    //     {{-1, 0.1, 0.05},
+    //     {0.1, -1, 0.2},
+    //     {0.05, 0.2, -1}};
 
-    //cost should be 1 with edges going from 1-2, 2-3, 3-4, 4-5
-    vector<vector<float> > test_3
-        {{-1, 0.1, 0.6, 0.7, 0.5},
-        {0.1, -1, 0.2, 0.85, 0.8},
-        {0.6, 0.2, -1, 0.3, 0.9},
-        {0.7, 0.85, 0.3, -1, 0.4},
-        {0.5, 0.8, 0.9, 0.4, -1}};
+    // //cost should be 0.6 with edges going from 1-2, 2-3, and 3-4
+    // vector<vector<float> > test_2 
+    //     {{-1, 0.2, 0.5, 0.1},
+    //     {0.2, -1, 0.3, 0.6},
+    //     {0.5, 0.3, -1, 0.4},
+    //     {0.1, 0.6, 0.4, -1}};
 
-    vector<vector<float> > rand_1 = graph_od(3);
+    // //cost should be 1 with edges going from 1-2, 2-3, 3-4, 4-5
+    // vector<vector<float> > test_3
+    //     {{-1, 0.1, 0.6, 0.7, 0.5},
+    //     {0.1, -1, 0.2, 0.85, 0.8},
+    //     {0.6, 0.2, -1, 0.3, 0.9},
+    //     {0.7, 0.85, 0.3, -1, 0.4},
+    //     {0.5, 0.8, 0.9, 0.4, -1}};
 
-    vector<vector<float> > rand_2 = graph_md(2, 3);
+    // vector<vector<float> > rand_1 = graph_od(3);
 
-    vector<vector<float> > rand_3 = graph_md(3, 3);
+    // vector<vector<float> > rand_2 = graph_md(2, 3);
 
-    vector<vector<float> > rand_4 = graph_md(4, 3);
+    // vector<vector<float> > rand_3 = graph_md(3, 3);
 
-    cout << "test_1";
-    print_graph(test_1);
-    cout << endl;
-    cout << "test_2";
-    print_graph(test_2);
-    cout << endl;
-    cout << "test_3";
-    print_graph(test_3);
-    cout << endl;
-    cout << "testing onedimensional";
-    srand ( time(NULL) );
-    cout << endl;
-    print_graph(rand_1);
-    cout << endl;
-    cout << "hey hey lets do more dimensiosn!";
-    cout << endl;
-    print_graph(rand_2);
-    cout << endl;
-    cout << "a third!!";
-    cout << endl;
-    print_graph(rand_3);
-    cout << endl;
-    cout << "a fourth!!";
-    cout << endl;
-    print_graph(rand_4);
-    cout << endl;
-    cout <<"now lets get some adjacency matrices!!";
-    cout <<endl << endl;
-    cout <<"graph 2d";
-    cout << endl;
-    print_graph(graph_mod(rand_2, 3, 2));
-    cout << endl;
-    cout <<"graph 3d";
-    cout << endl;
-    print_graph(graph_mod(rand_3, 3, 3));
-    cout << endl;
-    cout <<"graph 4d";
-    cout << endl;
-    print_graph(graph_mod(rand_4, 3, 4));
+    // vector<vector<float> > rand_4 = graph_md(4, 3);
 
-    IndexPrioQueue prioqueue(5);
-    printf("%d", prioqueue.size());
-    prioqueue.insert(0, 1, 0.1);
-    prioqueue.insert(1, 2, 0.2);
-    prioqueue.insert(2, 3, 0.3);
-    prioqueue.insert(3, 4, 0.05);
-    prioqueue.decreaseKey(3, 2, 0.03);
-    printf("new size aye%d", prioqueue.size());
-    printf("now we r dequeueing!!!\n");
-    tuple<int, int, float> deq = prioqueue.dequeue();
-    int srcNode = get<0>(deq);
-    int destNode = get<1>(deq);
-    float edge = get<2>(deq);
-    printf("%d\n", srcNode);
-    printf("%d\n", destNode);
-    printf("%f\n", edge);
+    // cout << "test_1";
+    // print_graph(test_1);
+    // cout << endl;
+    // cout << "test_2";
+    // print_graph(test_2);
+    // cout << endl;
+    // cout << "test_3";
+    // print_graph(test_3);
+    // cout << endl;
+    // cout << "testing onedimensional";
+    // srand ( time(NULL) );
+    // cout << endl;
+    // print_graph(rand_1);
+    // cout << endl;
+    // cout << "hey hey lets do more dimensiosn!";
+    // cout << endl;
+    // print_graph(rand_2);
+    // cout << endl;
+    // cout << "a third!!";
+    // cout << endl;
+    // print_graph(rand_3);
+    // cout << endl;
+    // cout << "a fourth!!";
+    // cout << endl;
+    // print_graph(rand_4);
+    // cout << endl;
+    // cout <<"now lets get some adjacency matrices!!";
+    // cout <<endl << endl;
+    // cout <<"graph 2d";
+    // cout << endl;
+    // print_graph(graph_mod(rand_2, 3, 2));
+    // cout << endl;
+    // cout <<"graph 3d";
+    // cout << endl;
+    // print_graph(graph_mod(rand_3, 3, 3));
+    // cout << endl;
+    // cout <<"graph 4d";
+    // cout << endl;
+    // print_graph(graph_mod(rand_4, 3, 4));
 
-    float cool = eager_Prims(3, test_1);
-    printf("mst cost %f", cool);
-    // for (int i = 0; i < 2; i++) {
-    //     printf("from edge %d to edge %d with weight %f", get<0>(cool[i]), get<1>(cool[i]), get<2>(cool[i]));
-    // }
+    // IndexPrioQueue prioqueue(5);
+    // printf("%d", prioqueue.size());
+    // prioqueue.insert(0, 1, 0.1);
+    // prioqueue.insert(1, 2, 0.2);
+    // prioqueue.insert(2, 3, 0.3);
+    // prioqueue.insert(3, 4, 0.05);
+    // prioqueue.decreaseKey(3, 2, 0.03);
+    // printf("new size aye%d", prioqueue.size());
+    // printf("now we r dequeueing!!!\n");
+    // tuple<int, int, float> deq = prioqueue.dequeue();
+    // int srcNode = get<0>(deq);
+    // int destNode = get<1>(deq);
+    // float edge = get<2>(deq);
+    // printf("%d\n", srcNode);
+    // printf("%d\n", destNode);
+    // printf("%f\n", edge);
+
+    // float cool = eager_Prims(5, test_3);
+    // printf("mst cost %f", cool);
 }
