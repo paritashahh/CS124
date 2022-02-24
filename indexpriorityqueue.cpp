@@ -13,6 +13,10 @@
 #include <tuple>
 #include <fstream>
 #include <sys/time.h>
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::seconds;
+using std::chrono::system_clock;
 
 using namespace std;
 
@@ -295,7 +299,7 @@ IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqu
             continue;
             }
             if (!prioqueue.contains(destNode)) {
-                 prioqueue.insert(s, destNode, val);
+                prioqueue.insert(s, destNode, val);
             }
             else {
                  prioqueue.decreaseKey(s, destNode, val);
@@ -386,22 +390,76 @@ float run_trials (int numpoints, int numtrials, int dimension) {
     return trial_avg(cost, numtrials);
 }
 
+long getTime(){
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+
 int main() {
-    ofstream myfile;
-    myfile.open("data_generation.txt");
-    int numpoints = 0;
-    int numtrials = 1000;
-    int dimensions = 2; 
-    //graph_od(numpoints);
-    vector<vector<float> > g1 = graph_md(2, numpoints);
-    //graph_mod(g1, numpoints, 2);
-    vector<vector<float> > g2 = graph_md(3, numpoints);
-    //graph_mod(g2, numpoints, 3);
-    vector<vector<float> > g3 = graph_md(4, numpoints);
-    //graph_mod(g3, numpoints, 4);
-    eager_Prims(numpoints, g1, 2);
-    eager_Prims(numpoints, g2, 3);
-    eager_Prims(numpoints,g3, 4);
+
+    // ofstream myfile;
+    // myfile.open("final data.txt");
+    // myfile << "numpoints = 128 dimension = 0 averge" << run_trials(128, 5, 0) << endl;
+    // myfile << "numpoints = 128 dimension = 2 averge" << run_trials(128, 5, 2) << endl;
+    // myfile << "numpoints = 128 dimension = 3 averge" << run_trials(128, 5, 3) << endl;
+    // myfile << "numpoints = 128 dimension = 4 averge" << run_trials(128, 5, 4) << endl;
+    // myfile << "numpoints = 256 dimension = 0 averge" << run_trials(256, 5, 0) << endl;
+    // myfile << "numpoints = 256 dimension = 2 averge" << run_trials(256, 5, 2) << endl;
+    // myfile << "numpoints = 256 dimension = 3 averge" << run_trials(256, 5, 3) << endl;
+    // myfile << "numpoints = 256 dimension = 4 averge" << run_trials(256, 5, 4) << endl;
+    // myfile << "numpoints = 512 dimension = 0 averge" << run_trials(512, 5, 0) << endl;
+    // myfile << "numpoints = 512 dimension = 2 averge" << run_trials(512, 5, 2) << endl;
+    // myfile << "numpoints = 512 dimension = 3 averge" << run_trials(512, 5, 3) << endl;
+    // myfile << "numpoints = 512 dimension = 4 averge" << run_trials(512, 5, 4) << endl;
+    // myfile << "numpoints = 1024 dimension = 0 averge" << run_trials(1024, 5, 0) << endl;
+    // myfile << "numpoints = 1024 dimension = 2 averge" << run_trials(1024, 5, 2) << endl;
+    // myfile << "numpoints = 1024 dimension = 3 averge" << run_trials(1024, 5, 3) << endl;
+    // myfile << "numpoints = 1024 dimension = 4 averge" << run_trials(1024, 5, 4) << endl;
+    // myfile << "numpoints = 2048 dimension = 0 averge" << run_trials(2048, 5, 0) << endl;
+    // myfile << "numpoints = 2048 dimension = 2 averge" << run_trials(2048, 5, 2) << endl;
+    // myfile << "numpoints = 2048 dimension = 3 averge" << run_trials(2048, 5, 3) << endl;
+    // myfile << "numpoints = 2048 dimension = 4 averge" << run_trials(2048, 5, 4) << endl;
+    // myfile << "numpoints = 4096 dimension = 0 averge" << run_trials(4096, 5, 0) << endl;
+    // myfile << "numpoints = 4096 dimension = 2 averge" << run_trials(4096, 5, 2) << endl;
+    // myfile << "numpoints = 4096 dimension = 3 averge" << run_trials(4096, 5, 3) << endl;
+    // myfile << "numpoints = 4096 dimension = 4 averge" << run_trials(4096, 5, 4) << endl;
+    // myfile << "numpoints = 8192 dimension = 0 averge" << run_trials(8192, 5, 0) << endl;
+    // myfile << "numpoints = 8192 dimension = 2 averge" << run_trials(8192, 5, 2) << endl;
+    // myfile << "numpoints = 8192 dimension = 3 averge" << run_trials(8192, 5, 3) << endl;
+    // myfile << "numpoints = 8192 dimension = 4 averge" << run_trials(8192, 5, 4) << endl;
+    // myfile << "numpoints = 16384 dimension = 0 averge" << run_trials(16384, 5, 0) << endl;
+    // myfile << "numpoints = 16384 dimension = 2 averge" << run_trials(16384, 5, 2) << endl;
+    // myfile << "numpoints = 16384 dimension = 3 averge" << run_trials(16384, 5, 3) << endl;
+    // myfile << "numpoints = 16384 dimension = 4 averge" << run_trials(16384, 5, 4) << endl;
+    // myfile << "numpoints = 32768 dimension = 0 averge" << run_trials(32768, 5, 0) << endl;
+    // myfile << "numpoints = 32768 dimension = 2 averge" << run_trials(32768, 5, 2) << endl;
+    // myfile << "numpoints = 32768 dimension = 3 averge" << run_trials(32768, 5, 3) << endl;
+    // myfile << "numpoints = 32768 dimension = 4 averge" << run_trials(32768, 5, 4) << endl;
+    // myfile << "numpoints = 65536 dimension = 0 averge" << run_trials(65536, 5, 0) << endl;
+    // myfile << "numpoints = 65536 dimension = 2 averge" << run_trials(65536, 5, 2) << endl;
+    // myfile << "numpoints = 65536 dimension = 3 averge" << run_trials(65536, 5, 3) << endl;
+    // myfile << "numpoints = 65536 dimension = 4 averge" << run_trials(65536, 5, 4) << endl;
+    // myfile << "numpoints = 131072 dimension = 0 averge" << run_trials(131072, 5, 0) << endl;
+    // myfile << "numpoints = 131072 dimension = 2 averge" << run_trials(131072, 5, 2) << endl;
+    // myfile << "numpoints = 131072 dimension = 3 averge" << run_trials(131072, 5, 3) << endl;
+    // myfile << "numpoints = 131072 dimension = 4 averge" << run_trials(131072, 5, 4) << endl;
+    // myfile << "numpoints = 262144 dimension = 0 averge" << run_trials(262144, 5, 0) << endl;
+    // myfile << "numpoints = 262144 dimension = 2 averge" << run_trials(262144, 5, 2) << endl;
+    // myfile << "numpoints = 262144 dimension = 3 averge" << run_trials(262144, 5, 3) << endl;
+    // myfile << "numpoints = 262144 dimension = 4 averge" << run_trials(262144, 5, 4) << endl;
+    // myfile.close();
+    // return 0;
+    // ofstream myfile;
+    // myfile.open("data_generation.txt");
+    // int numpoints = 100000;
+    // int numtrials = 5;
+    // int dimensions = 0; 
+    // //graph_od(numpoints);
+    // vector<vector<float> > g1 = graph_md(2, numpoints);
+    // //graph_mod(g1, numpoints, 2);
+    // vector<vector<float> > g2 = graph_md(3, numpoints);
+    // //graph_mod(g2, numpoints, 3);
+    // vector<vector<float> > g3 = graph_md(4, numpoints);
+    // //graph_mod(g3, numpoints, 4);
     // myfile << "numpoints = 5, numtrials = 3, dimensions = 0 case\n";
     // myfile << "avg cost was" << endl;
     // float avg = run_trials(numpoints, numtrials, dimensions);
@@ -418,12 +476,12 @@ int main() {
     // myfile << "numpoints = 5, numtrials = 3, dimensions = 4 case" << endl;
     // avg = run_trials(numpoints, numtrials, dimensions);
     // myfile << "average weight was " << avg << endl;
-    // myfile << "0D avg " << run_trials(5, 5, 0) << endl;
-    // myfile << "2D avg " << run_trials(5, 5, 0) << endl;
-    // myfile << "3D avg " << run_trials(5, 5, 0) << endl;
-    // myfile << "4D avg " << run_trials(5, 5, 0) << endl;
-    myfile.close();
-    return 0;
+    // // myfile << "0D avg " << run_trials(5, 5, 0) << endl;
+    // // myfile << "2D avg " << run_trials(5, 5, 0) << endl;
+    // // myfile << "3D avg " << run_trials(5, 5, 0) << endl;
+    // // myfile << "4D avg " << run_trials(5, 5, 0) << endl;
+    // myfile.close();
+    // return 0;
 
     // //cost should be 0.3 with edges going from 1-2 and 2-3
     // vector<vector<float> > test_1 
@@ -451,13 +509,6 @@ int main() {
     //     {0.6, 0.2, -1, 0.3, 0.9},
     //     {0.7, 0.85, 0.3, -1, 0.4},
     //     {0.5, 0.8, 0.9, 0.4, -1}};
-
-    // vector<vector<float> > testing
-    // {{0.1, 0.2},
-    // {0.3, 0.4}, 
-    // {0.5, 0.6}, 
-    // {0.7, 0.8}
-    // };
 
     // vector<vector<float> > rand_1 = graph_od(3);
 
@@ -524,6 +575,13 @@ int main() {
     // printf("%d\n", destNode);
     // printf("%f\n", edge);
 
-    // float cool = eager_Prims(4, testing, 2);
-    // printf("mst cost %f", cool);
+    vector<vector<float> > testing
+    {{0.1, 0.2},
+    {0.3, 0.4}, 
+    {0.5, 0.6}, 
+    {0.7, 0.8}
+    };
+
+    float cool = eager_Prims(4, testing, 2);
+    printf("mst cost %f", cool);
 }
