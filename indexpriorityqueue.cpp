@@ -33,13 +33,11 @@ class IndexPrioQueue {
     }
 
     void shift_up(int i) {
-        printf("%d", i);
         while(i > 1 && get<2>(values[im[i/2]]) > get<2>(values[im[i]])) {
             swap(i, i / 2);
             i = i / 2;
         }
-        printf("hey");
-    }
+    } 
 
     void shift_down(int i) {
         int j;
@@ -59,14 +57,18 @@ class IndexPrioQueue {
 
 public:
     //constructor
-    IndexPrioQueue(int N) {
+    IndexPrioQueue(int numpoints) {
         SZ = 0;
-        for (int i = 0; i < N; i++) {
-            pm[i] = -1;
-            im[i] = -1;
-            printf("%d", pm[i]);
-            printf("%d", im[i]);
+        im.reserve(numpoints);
+        pm.reserve(numpoints);
+        values.reserve(numpoints);
+        for (int i = 0; i < numpoints; i++) {
+            im.push_back(-1);
+            pm.push_back(-1);
+            values.push_back(make_tuple(0, 0, 0));
         }
+        printf("heyhey this my size bitches %lu", im.size());
+        printf("heyhey this my size bitches %lu", pm.size());
     }
 
     // check whether or not heap is empty
@@ -86,10 +88,11 @@ public:
 
     //insert new pair, making sure to satify heap invariant
     void insert(int i, int ki, float value) {
-        //SZ++;
-        //pm[ki] = SZ;
-        //im[SZ] = ki;
-        //values[ki] = make_tuple(i, ki, value);
+        SZ++;
+        printf("hi this is size %d ok", SZ);
+        pm[ki] = SZ;
+        im[SZ] = ki;
+        values[ki] = make_tuple(i, ki, value);
         shift_up(SZ);
     }
 
@@ -106,7 +109,7 @@ public:
 
     //decrease key value (ensuring heap invariant is satisfied)
     void decreaseKey(int s, int ki, float value) {
-        //can do euclidian distnace on the fly here
+        //can do euclidian distance on the fly here
         if (value < get<2>(values[ki])) {
             values[ki] = make_tuple(s, ki, value);
             shift_up(pm[ki]);
@@ -195,28 +198,24 @@ void print_graph (vector<vector<float> > graph) {
 //if current val is <, update, else do nothing
 //if there doesn't exist an incoming edge to that vertex
 //add edge to graph
-void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph, int dim) {
+void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vector<vector<float> > graph) {
+        printf("hey babe u look cute");
         visited[s] = true;
-        vector<float> outgoing_edges;
+        vector<float> outgoing_edges = graph[s];
         for (int i = 0; i < numpoints; i++) {
-            if (visited[s] == true || i == s) {
-                outgoing_edges[i] = -1;
-            }
-            else if (visited[s] != true && i != s) {
-                outgoing_edges[i] = eucl_dist(graph[s], graph[i], dim);
-            }
-        }
-        //vector<float> outgoing_edges = graph[s];
-        for (int i = 0; i < (numpoints - 1); i ++) {
             int destNode = i;
+            //if we've already visited the destination node, skip this iteration of loop
             if (visited[destNode]) {
             continue;
             }
+            printf("edge!! %f annddd it's index %d", outgoing_edges[i], destNode);
             if (!prioqueue.contains(destNode)) {
-                prioqueue.insert(s, destNode, outgoing_edges[i]);
+                printf("should get here twice i think");
+                 prioqueue.insert(s, destNode, outgoing_edges[i]);
             }
             else {
-                prioqueue.decreaseKey(s, destNode, outgoing_edges[i]);
+                printf("should never get here");
+                 prioqueue.decreaseKey(s, destNode, outgoing_edges[i]);
             }
         }
 }
@@ -226,35 +225,40 @@ void relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqueue, vecto
 //now, pick the smallest edge (aka top of prioqeue) and set that as destination node
 //add edge to mst_cost
 //now repeat process, making new "s" the destination node
-vector<tuple<int, int, float> > eager_Prims(int numpoints, vector<vector<float> > graph, int dim) {
+float eager_Prims(int numpoints, vector<vector<float> > graph) {
     IndexPrioQueue prioqueue(numpoints);
     int m = numpoints - 1;
     int edge_count = 0;
-    //int mst_cost = 0;
+    int mst_cost = 0;
     //create array of length numpoints
     //indicate whether or not vertex has been visited
     bool visited[numpoints];
     for (int i = 0; i < numpoints; i++) {
         visited[i] = false;
     }
+    printf("whore szn");
     //for final mst, vector of tuples
     //node from, node to, edge weight
     vector<tuple<int, int, float> > mstEdges(m);
     int s = 0;
-        relax(s, numpoints, visited, prioqueue, graph, dim);
-
+    printf("whore2 szn");
+        relax(s, numpoints, visited, prioqueue, graph);
+        
         while (!prioqueue.is_empty() and edge_count != m) {
+            printf("do we get here?");
             tuple<int, int, float> deq = prioqueue.dequeue();
-            //int srcNode = get<0>(deq);
+            int srcNode = get<0>(deq);
             int destNode = get<1>(deq);
-            //float edge = get<2>(deq);
+            float edge = get<2>(deq);
+            printf("edge from %d to %d with weight %f\n", srcNode, destNode, edge);
 
             mstEdges.push_back(deq); //change to push_back
-            //mst_cost += edge;
+            mst_cost += edge;
 
-            relax(destNode, numpoints, visited, prioqueue, graph, dim);
+        relax(destNode, numpoints, visited, prioqueue, graph);
         }
-        return mstEdges;
+        //return mstEdges;
+        return mst_cost;
 }
 
 //function to sum up costs of MST
@@ -291,10 +295,7 @@ float run_trials (int numpoints, int numtrials, int dimension) {
             adj_mat = graph_mod(vertices, numpoints, dimension);
         }
         //use prims alg to find mst
-        vector<tuple<int, int, float> > mst = eager_Prims(numpoints, adj_mat, dimension);
-        //calculate cost of mst
-        //float sum = sum_cost(mst);
-        //depending on dimemsion, add to total cost of mst
+        //vector<tuple<int, int, float> > mst = eager_Prims(numpoints, adj_mat);
     }
     return trial_avg(cost, numtrials);
 }
@@ -375,22 +376,26 @@ int main() {
     cout << endl;
     print_graph(graph_mod(rand_4, 3, 4));
 
-    IndexPrioQueue prioqueue(3);
+    IndexPrioQueue prioqueue(5);
     printf("%d", prioqueue.size());
     prioqueue.insert(0, 1, 0.1);
     prioqueue.insert(1, 2, 0.2);
     prioqueue.insert(2, 3, 0.3);
+    prioqueue.insert(3, 4, 0.05);
+    prioqueue.decreaseKey(3, 2, 0.03);
+    printf("new size aye%d", prioqueue.size());
+    printf("now we r dequeueing!!!\n");
+    tuple<int, int, float> deq = prioqueue.dequeue();
+    int srcNode = get<0>(deq);
+    int destNode = get<1>(deq);
+    float edge = get<2>(deq);
+    printf("%d\n", srcNode);
+    printf("%d\n", destNode);
+    printf("%f\n", edge);
 
-    // tuple<int, int, float> deq = prioqueue.dequeue();
-    // int srcNode = get<0>(deq);
-    // int destNode = get<1>(deq);
-    // float edge = get<2>(deq);
-    // printf("%d", srcNode);
-    // printf("%d", destNode);
-    // printf("%f", edge);
-    //bool visited[3] = {false};
-    //relax(0, 3, visited, prioqueue, rand_2, 2);
-
-    //eager_Prims(3, rand_2, 2);
-    //segmentation fault is in prim's
+    float cool = eager_Prims(3, test_1);
+    printf("mst cost %f", cool);
+    // for (int i = 0; i < 2; i++) {
+    //     printf("from edge %d to edge %d with weight %f", get<0>(cool[i]), get<1>(cool[i]), get<2>(cool[i]));
+    // }
 }
