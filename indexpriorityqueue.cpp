@@ -20,6 +20,10 @@ using std::chrono::system_clock;
 
 using namespace std;
 
+long getTime(){
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+
 class IndexPrioQueue {
 
     //pm maps the vertex to the node
@@ -137,6 +141,78 @@ float eucl_dist(vector<float> v1, vector<float> v2, int dim) {
     return sqrt(sum);
 }
 
+bool threshold_check (int numpoints, int dim, float val) {
+    float threshold = 0;
+    if (numpoints <= 1024 && dim == 0) {
+        threshold = 0.1;
+    }  
+    if (numpoints > 1024 && numpoints < 8192 && dim == 0) {
+        threshold = 0.02;
+    }
+     if (numpoints >= 8192 && numpoints < 32768 && dim == 0) {
+        threshold = 0.0015;
+    }
+    if (numpoints >= 32768 && numpoints < 131072 && dim == 0) {
+        threshold = 0.0005;
+    }
+    if (numpoints >= 131072 && numpoints < 262144 && dim == 0) {
+        threshold = 0.00011;
+    }
+    if (numpoints >= 262144 && dim == 0) {
+        threshold = 0.00008;
+    }
+    if (numpoints == 128 && dim == 2) {
+        threshold = 0.3;
+    }   
+    if (numpoints == 128 && dim == 3) {
+        threshold = 0.4;
+    }
+    if (numpoints == 128 && dim == 4) {
+        threshold = 0.5;
+    }
+    if (numpoints == 256 && dim == 2) {
+        threshold = 0.2;
+    }
+    if (numpoints == 256 && dim == 3) {
+        threshold = 0.3;
+    }
+    if (numpoints == 256 && dim == 4) {
+        threshold = 0.4;
+    }
+    if (numpoints == 512 && dim == 2) {
+        threshold = 0.1;
+    }
+    if (numpoints == 512 && dim == 3) {
+        threshold = 0.25;
+    }
+    if (numpoints == 512 && dim == 4) {
+        threshold = 0.3;
+    }
+    if (numpoints == 1024 && dim == 2) {
+        threshold = 0.07;
+    }
+    if (numpoints == 1024 && dim == 3) {
+        threshold = 0.2;
+    }
+    if (numpoints == 1024 && dim == 4) {
+        threshold = 0.3;
+    }
+    if (numpoints == 2048 && dim == 2) {
+        threshold = 0.05;
+    }
+    if (numpoints >= 2048 && dim == 3) {
+        threshold = 0.2;
+    }
+    if (numpoints >= 2048 && dim == 4) {
+        threshold = 0.25;
+    }
+    if (numpoints >= 4096 && dim == 2) {
+        threshold = 0.05;
+    }
+    return val > threshold;
+}
+
+
 //represent graph as an array in which the rows = numpoints 
 // columns = elements of euclidian dis calculation
 vector<vector<float> > graph_md(int dim, int numpoints) {
@@ -158,8 +234,13 @@ vector<vector<float> > graph_od(int numpoints) {
                 graph[i][j] = -1;
             }
             float val = rand_sample();
-            graph[i][j] = val;
-            graph[j][i] = val;
+            if (threshold_check(numpoints, 0, val)) {
+                graph[i][j] = -1;
+            }
+            else {
+                graph[i][j] = val;
+                graph[j][i] = val;
+            }
         }
     }
     return graph;
@@ -214,67 +295,6 @@ void print_graph (vector<vector<float> > graph) {
     myfile.close();
 }
 
-
-bool threshold_check (int numpoints, int dim, float val) {
-    float threshold = 0;
-    if (numpoints <= 1024 && dim == 0) {
-        threshold = 0.1;
-    }  
-    if (numpoints > 1024 && dim == 0) {
-        threshold = 0.01;
-    }
-    if (numpoints == 128 && dim == 2) {
-        threshold = 0.3;
-    }   
-    if (numpoints == 128 && dim == 3) {
-        threshold = 0.4;
-    }
-    if (numpoints == 128 && dim == 4) {
-        threshold = 0.5;
-    }
-    if (numpoints == 256 && dim == 2) {
-        threshold = 0.2;
-    }
-    if (numpoints == 256 && dim == 3) {
-        threshold = 0.3;
-    }
-    if (numpoints == 256 && dim == 4) {
-        threshold = 0.4;
-    }
-    if (numpoints == 512 && dim == 2) {
-        threshold = 0.1;
-    }
-    if (numpoints == 512 && dim == 3) {
-        threshold = 0.25;
-    }
-    if (numpoints == 512 && dim == 4) {
-        threshold = 0.3;
-    }
-    if (numpoints == 1024 && dim == 2) {
-        threshold = 0.07;
-    }
-    if (numpoints == 1024 && dim == 3) {
-        threshold = 0.2;
-    }
-    if (numpoints == 1024 && dim == 4) {
-        threshold = 0.3;
-    }
-    if (numpoints == 2048 && dim == 2) {
-        threshold = 0.05;
-    }
-    if (numpoints >= 2048 && dim == 3) {
-        threshold = 0.2;
-    }
-    if (numpoints >= 2048 && dim == 4) {
-        threshold = 0.25;
-    }
-    if (numpoints >= 4096 && dim == 2) {
-        threshold = 0.05;
-    }
-    return val > threshold;
-}
-
-
 //put vertex on priority queue
 //if there already exists an incoming edge to that vertex, check if current val is < 
 //if current val is <, update, else do nothing
@@ -295,7 +315,7 @@ IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqu
             else {
                 val = outgoing_edges[i];
             }
-            if (visited[destNode] || s == i || (threshold_check(numpoints, dim, val))) {
+            if (visited[destNode] || s == i || val == -1) {
             continue;
             }
             if (!prioqueue.contains(destNode)) {
@@ -335,7 +355,7 @@ float eager_Prims(int numpoints, vector<vector<float> > graph, int dim) {
             int srcNode = get<0>(deq);
             int destNode = get<1>(deq);
             float edge = get<2>(deq);
-            // printf("edge from %d to %d with weight %f\n", srcNode, destNode, edge);
+            //printf("edge from %d to %d with weight %f\n", srcNode, destNode, edge);
 
             mstEdges.push_back(deq);
             mst_cost += edge;
@@ -384,25 +404,37 @@ float run_trials (int numpoints, int numtrials, int dimension) {
             // adj_mat = graph_mod(vertices, numpoints, dimension);
         }
         //use prims alg to find mst
+        ofstream myfile;
+        myfile.open("final times.txt");
+        long t1 = getTime();
         float mst = eager_Prims(numpoints, adj_mat, dimension);
+        long t2 = getTime();
+        long prims_time = t2 - t1;
+        myfile << "dimension " << dimension << "prim's time ";
+        myfile << prims_time << endl;
         cost[i] = mst;
     }
     return trial_avg(cost, numtrials);
 }
 
-long getTime(){
-    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-}
-
 int main() {
 
-    // ofstream myfile;
-    // myfile.open("final data.txt");
+    ofstream myfile;
+    myfile.open("final data.txt");
+    vector<vector<float> > testing
+    {{0.1, 0.2, 0.3},
+    {0.25, 0.35, 0.36}, 
+    {0.44, 0.15, 0.22}, 
+    {0.14, 0.31, 0.21}
+    };
+
+ float cool = eager_Prims(4, testing, 3);
+    printf("mst cost %f", cool);
     // myfile << "numpoints = 128 dimension = 0 averge" << run_trials(128, 5, 0) << endl;
     // myfile << "numpoints = 128 dimension = 2 averge" << run_trials(128, 5, 2) << endl;
     // myfile << "numpoints = 128 dimension = 3 averge" << run_trials(128, 5, 3) << endl;
     // myfile << "numpoints = 128 dimension = 4 averge" << run_trials(128, 5, 4) << endl;
-    // myfile << "numpoints = 256 dimension = 0 averge" << run_trials(256, 5, 0) << endl;
+    //myfile << "numpoints = 256 dimension = 0 averge" << run_trials(256, 1, 0) << endl;
     // myfile << "numpoints = 256 dimension = 2 averge" << run_trials(256, 5, 2) << endl;
     // myfile << "numpoints = 256 dimension = 3 averge" << run_trials(256, 5, 3) << endl;
     // myfile << "numpoints = 256 dimension = 4 averge" << run_trials(256, 5, 4) << endl;
@@ -430,7 +462,7 @@ int main() {
     // myfile << "numpoints = 16384 dimension = 2 averge" << run_trials(16384, 5, 2) << endl;
     // myfile << "numpoints = 16384 dimension = 3 averge" << run_trials(16384, 5, 3) << endl;
     // myfile << "numpoints = 16384 dimension = 4 averge" << run_trials(16384, 5, 4) << endl;
-    // myfile << "numpoints = 32768 dimension = 0 averge" << run_trials(32768, 5, 0) << endl;
+    //myfile << "numpoints = 32768 dimension = 0 averge" << run_trials(32768, 5, 0) << endl;
     // myfile << "numpoints = 32768 dimension = 2 averge" << run_trials(32768, 5, 2) << endl;
     // myfile << "numpoints = 32768 dimension = 3 averge" << run_trials(32768, 5, 3) << endl;
     // myfile << "numpoints = 32768 dimension = 4 averge" << run_trials(32768, 5, 4) << endl;
@@ -442,12 +474,12 @@ int main() {
     // myfile << "numpoints = 131072 dimension = 2 averge" << run_trials(131072, 5, 2) << endl;
     // myfile << "numpoints = 131072 dimension = 3 averge" << run_trials(131072, 5, 3) << endl;
     // myfile << "numpoints = 131072 dimension = 4 averge" << run_trials(131072, 5, 4) << endl;
-    // myfile << "numpoints = 262144 dimension = 0 averge" << run_trials(262144, 5, 0) << endl;
+    //myfile << "numpoints = 262144 dimension = 0 averge" << run_trials(262144, 1, 0) << endl;
     // myfile << "numpoints = 262144 dimension = 2 averge" << run_trials(262144, 5, 2) << endl;
     // myfile << "numpoints = 262144 dimension = 3 averge" << run_trials(262144, 5, 3) << endl;
-    // myfile << "numpoints = 262144 dimension = 4 averge" << run_trials(262144, 5, 4) << endl;
-    // myfile.close();
-    // return 0;
+    // myfile << "numpo ints = 262144 dimension = 4 averge" << run_trials(262144, 5, 4) << endl;
+    myfile.close();
+    return 0;
     // ofstream myfile;
     // myfile.open("data_generation.txt");
     // int numpoints = 100000;
@@ -575,13 +607,13 @@ int main() {
     // printf("%d\n", destNode);
     // printf("%f\n", edge);
 
-    vector<vector<float> > testing
-    {{0.1, 0.2},
-    {0.3, 0.4}, 
-    {0.5, 0.6}, 
-    {0.7, 0.8}
-    };
+//     vector<vector<float> > testing
+//     {{0.1, 0.2},
+//     {0.3, 0.4}, 
+//     {0.5, 0.6}, 
+//     {0.7, 0.8}
+//     };
 
-    float cool = eager_Prims(4, testing, 2);
-    printf("mst cost %f", cool);
+//     float cool = eager_Prims(4, testing, 2);
+//     printf("mst cost %f", cool);
 }
