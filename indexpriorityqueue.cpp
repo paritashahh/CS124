@@ -13,10 +13,18 @@
 #include <tuple>
 #include <fstream>
 #include <sys/time.h>
+#include <chrono>
+#include <ctime>
+#include <stdio.h>    
+#include <math.h>  
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::chrono::system_clock;
+
+//list-based heap 
+//dynamically allocate memory instead***might be issue
+//list-based heap, extreme threshold values, change stnd vectors to dynamiclly vectors 
 
 using namespace std;
 
@@ -34,6 +42,19 @@ class IndexPrioQueue {
     vector<int> pm;
     vector<tuple<int, int, float> > values;
 
+
+    int left_child(int i) {
+        return (2 * i) + 1;
+    }
+
+    int right_child(int i) {
+        return (2 * i) + 2;
+    }
+
+    int parent(int i) {
+        return (i - 1) / 2;
+    }
+
     void swap(int i, int j) {
         int temp = im[i];
         im[i] = im[j]; 
@@ -43,25 +64,31 @@ class IndexPrioQueue {
     }
 
     void shift_up(int i) {
-        while(i > 1 && get<2>(values[im[i/2]]) > get<2>(values[im[i]])) {
-            swap(i, i / 2);
-            i = i / 2;
+        while(i > 1 && get<2>(values[im[parent(i)]]) > get<2>(values[im[i]])) {
+            swap(i, parent(i));
+            i = parent(i);
         }
     } 
 
+//swap with smaller of 2 children until not larger than any children
     void shift_down(int i) {
-        int j;
-        int child = 2 * i;
-        while (child <= SZ) {
-            j = child;
-            if(j < SZ && get<2>(values[im[j]]) > get<2>(values[im[j+1]])) {
-                j++;
+        while (i * 2 <= SZ) {
+            int left = left_child(i);
+            int right = right_child(i);
+            int swap_node = i * 2;
+            if (swap_node <= SZ && get<2>(values[im[right]]) > get<2>(values[im[left]])) {
+                //swap with left child
+                swap_node++;
             }
-            if(values[im[i]] <= values[im[j]]) {
+            else {
+                //swap with right child
+                swap_node = swap_node + 2;
+            }
+            if (get<2>(values[im[i]]) <= get<2>(values[im[left]]) && get<2>(values[im[i]]) <= get<2>(values[im[right]])) {
                 break;
             }
-            swap(i, j);
-            i = j;
+            swap(i, swap_node);
+            i = swap_node;
         }
     }
 
@@ -75,7 +102,7 @@ public:
         for (int i = 0; i < numpoints; i++) {
             im.push_back(-1);
             pm.push_back(-1);
-            values.push_back(make_tuple(-1, -1, -1));
+            values.push_back(make_tuple(-1, -1, INFINITY));
         }
     }
 
@@ -93,6 +120,19 @@ public:
     int size() {
         return SZ;
     }
+
+    int left_child(int i) {
+        return (2 * i) + 1;
+    }
+
+    int right_child(int i) {
+        return (2 * i) + 2;
+    }
+
+    int parent(int i) {
+        return (i - 1) / 2;
+    }
+
 
     //insert new pair, making sure to satify heap invariant
     void insert(int i, int ki, float value) {
@@ -161,53 +201,59 @@ bool threshold_check (int numpoints, int dim, float val) {
     if (numpoints >= 262144 && dim == 0) {
         threshold = 0.00008;
     }
-    if (numpoints == 128 && dim == 2) {
-        threshold = 0.3;
-    }   
-    if (numpoints == 128 && dim == 3) {
-        threshold = 0.4;
-    }
-    if (numpoints == 128 && dim == 4) {
-        threshold = 0.5;
-    }
-    if (numpoints == 256 && dim == 2) {
-        threshold = 0.2;
-    }
-    if (numpoints == 256 && dim == 3) {
-        threshold = 0.3;
-    }
-    if (numpoints == 256 && dim == 4) {
-        threshold = 0.4;
-    }
-    if (numpoints == 512 && dim == 2) {
-        threshold = 0.1;
-    }
-    if (numpoints == 512 && dim == 3) {
+    if (numpoints <= 1024 && dim == 2) {
         threshold = 0.25;
-    }
-    if (numpoints == 512 && dim == 4) {
-        threshold = 0.3;
-    }
-    if (numpoints == 1024 && dim == 2) {
+    }  
+    if (numpoints > 1024 && numpoints < 8192 && dim == 2) {
         threshold = 0.07;
     }
-    if (numpoints == 1024 && dim == 3) {
-        threshold = 0.2;
+     if (numpoints >= 8192 && numpoints < 32768 && dim == 2) {
+        threshold = 0.03;
     }
-    if (numpoints == 1024 && dim == 4) {
+    if (numpoints >= 32768 && numpoints < 131072 && dim == 2) {
+        threshold = 0.02;
+    }
+    if (numpoints >= 131072 && numpoints < 262144 && dim == 2) {
+        threshold = 0.007;
+    }
+    if (numpoints >= 262144 && dim == 2) {
+        threshold = 0.0045;
+    }
+    if (numpoints <= 1024 && dim == 3) {
+        threshold = 0.35;
+    }  
+    if (numpoints > 1024 && numpoints < 8192 && dim == 3) {
+        threshold = 0.18;
+    }
+     if (numpoints >= 8192 && numpoints < 32768 && dim == 3) {
+        threshold = 0.09;
+    }
+    if (numpoints >= 32768 && numpoints < 131072 && dim == 3) {
+        threshold = 0.06;
+    }
+    if (numpoints >= 131072 && numpoints < 262144 && dim == 3) {
+        threshold = 0.04;
+    }
+    if (numpoints >= 262144 && dim == 3) {
+        threshold = 0.025;
+    }
+    if (numpoints <= 1024 && dim == 4) {
+        threshold = 0.5;
+    }  
+    if (numpoints > 1024 && numpoints < 8192 && dim == 4) {
         threshold = 0.3;
     }
-    if (numpoints == 2048 && dim == 2) {
-        threshold = 0.05;
+     if (numpoints >= 8192 && numpoints < 32768 && dim == 4) {
+        threshold = 0.18;
     }
-    if (numpoints >= 2048 && dim == 3) {
-        threshold = 0.2;
+    if (numpoints >= 32768 && numpoints < 131072 && dim == 4) {
+        threshold = 0.15;
     }
-    if (numpoints >= 2048 && dim == 4) {
-        threshold = 0.25;
+    if (numpoints >= 131072 && numpoints < 262144 && dim == 4) {
+        threshold = 0.08;
     }
-    if (numpoints >= 4096 && dim == 2) {
-        threshold = 0.05;
+    if (numpoints >= 262144 && dim == 4) {
+        threshold = 0.08;
     }
     return val > threshold;
 }
@@ -215,7 +261,7 @@ bool threshold_check (int numpoints, int dim, float val) {
 
 //represent graph as an array in which the rows = numpoints 
 // columns = elements of euclidian dis calculation
-vector<vector<float> > graph_md(int dim, int numpoints) {
+vector<vector<float> > graph(int dim, int numpoints) {
     vector<vector<float> > graph(numpoints, vector<float>(dim));
     for (int i = 0; i < numpoints; i++) {
         for (int j = 0; j < dim; j ++) {
@@ -226,26 +272,26 @@ vector<vector<float> > graph_md(int dim, int numpoints) {
 }
 
 //weights = values (adjacency matrix representation)
-vector<vector<float> > graph_od(int numpoints) {
-    vector<vector<float> > graph(numpoints, vector<float>(numpoints));
-    for (int i = 0; i < numpoints; i++) {
-        for (int j = 0; j < numpoints; j++) {
-            if (i == j) {
-                graph[i][j] = -1;
-            }
-            float val = rand_sample();
-            if (threshold_check(numpoints, 0, val)) {
-                graph[i][j] = -1;
-                graph[j][i] = -1;
-            }
-            else {
-                graph[i][j] = val;
-                graph[j][i] = val;
-            }
-        }
-    }
-    return graph;
-}
+// vector<vector<float> > graph_od(int numpoints) {
+//     vector<vector<float> > graph(numpoints, vector<float>(numpoints));
+//     for (int i = 0; i < numpoints; i++) {
+//         for (int j = 0; j < numpoints; j++) {
+//             if (i == j) {
+//                 graph[i][j] = -1;
+//             }
+//             float val = rand_sample();
+//             if (threshold_check(numpoints, 0, val)) {
+//                 graph[i][j] = -1;
+//                 graph[j][i] = -1;
+//             }
+//             else {
+//                 graph[i][j] = val;
+//                 graph[j][i] = val;
+//             }
+//         }
+//     }
+//     return graph;
+// }
 
 void max_weight(vector<vector<float> > graph) {
     ofstream myfile;
@@ -262,34 +308,34 @@ void max_weight(vector<vector<float> > graph) {
     myfile.close();
 }
 
-//create adjacency matrix for the multidimensional graph
-vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, int dim) {
-    vector<vector<float> > adj(numpoints, vector<float>(numpoints));
-    for (int i = 0; i < numpoints; i++) {
-        for (int j = 0; j < numpoints; j ++) {
-            //if both vertices same (index i = index j) then no edge between them
-            if (i == j) {
-                adj[i][j] = -1;
-            }
-            else {
-                //compute euclidian distance between points at row i and j
-                float val = eucl_dist(graph[i], graph[j], dim);
-                if (threshold_check(numpoints, 0, val)) {
-                    adj[i][j] = -1;
-                    adj[j][i] = -1;
-                }
-                else {
-                    adj[i][j] = val;
-                    adj[j][i] = val;
-                }
-                //could include pruning here
-            }
-        }
-    }
-    return adj;
-}
+// //create adjacency matrix for the multidimensional graph
+// vector<vector<float> > graph_mod(vector<vector<float> > graph, int numpoints, int dim) {
+//     vector<vector<float> > adj(numpoints, vector<float>(numpoints));
+//     for (int i = 0; i < numpoints; i++) {
+//         for (int j = 0; j < numpoints; j ++) {
+//             //if both vertices same (index i = index j) then no edge between them
+//             if (i == j) {
+//                 adj[i][j] = -1;
+//             }
+//             else {
+//                 //compute euclidian distance between points at row i and j
+//                 float val = eucl_dist(graph[i], graph[j], dim);
+//                 if (threshold_check(numpoints, 0, val)) {
+//                     adj[i][j] = -1;
+//                     adj[j][i] = -1;
+//                 }
+//                 else {
+//                     adj[i][j] = val;
+//                     adj[j][i] = val;
+//                 }
+//                 //could include pruning here
+//             }
+//         }
+//     }
+//     return adj;
+// }
 
-//function to print adjacency matrix
+//function to print graph (or any 2-D array)
 void print_graph (vector<vector<float> > graph) {
     ofstream myfile;
     myfile.open("graph_generation.txt");
@@ -315,14 +361,13 @@ IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqu
             int destNode = i;
             //if we've already visited the destination node, skip this iteration of loop
             float val = 0;
-            float threshold = 0;
-            if (dim != 0) {
-                val = eucl_dist(graph[s], graph[i], dim);
+            if (dim == 0) {
+                val = graph[i][0];
             }
             else {
-                val = outgoing_edges[i];
+                val = eucl_dist(graph[s], graph[i], dim);
             }
-            if (visited[destNode] || s == i || val == -1) {
+            if (visited[destNode] || s == i || threshold_check(numpoints, dim, val)) {
             continue;
             }
             if (!prioqueue.contains(destNode)) {
@@ -359,7 +404,7 @@ float eager_Prims(int numpoints, vector<vector<float> > graph, int dim) {
 
         while (!prioqueue.is_empty() and edge_count != m) {
             tuple<int, int, float> deq = prioqueue.dequeue();
-            int srcNode = get<0>(deq);
+            // int srcNode = get<0>(deq);
             int destNode = get<1>(deq);
             float edge = get<2>(deq);
             //printf("edge from %d to %d with weight %f\n", srcNode, destNode, edge);
@@ -401,12 +446,12 @@ float run_trials (int numpoints, int numtrials, int dimension) {
         srand((unsigned) tv.tv_usec);
         vector<vector<float> > adj_mat;
         if (dimension == 0) {
-            adj_mat = graph_od(numpoints);
+            adj_mat = graph(dimension, numpoints);
             max_weight(adj_mat);
         }
         else {
             //generate vertices of graph
-            adj_mat = graph_md(dimension, numpoints);
+            adj_mat = graph(dimension, numpoints);
             //create adjacency matrix and calculate weights
             // adj_mat = graph_mod(vertices, numpoints, dimension);
         }
@@ -426,6 +471,20 @@ float run_trials (int numpoints, int numtrials, int dimension) {
 
 int main() {
 
+    // print_graph(graph(1, 262144));
+    // print_graph(graph(4, 262144));
+    eager_Prims(3000, graph(2, 3000), 2);
+//        vector<int> im;
+//     vector<int> pm;
+//     vector<tuple<int, int, float> > values;
+//         im.reserve(300000);
+//         pm.reserve(3000000);
+//         values.reserve(3000000);
+//  for (int i = 0; i < 3000000; i++) {
+//             im.push_back(-1);
+//             pm.push_back(-1);
+//             values.push_back(make_tuple(-1, -1, INFINITY));
+//         }
     ofstream myfile;
     myfile.open("final data.txt");
 //     vector<vector<float> > testing
@@ -437,13 +496,13 @@ int main() {
 
 //  float cool = eager_Prims(4, testing, 3);
 //     printf("mst cost %f", cool);
-    myfile << "numpoints = 256 dimension = 0 averge" << run_trials(100, 1, 0) << endl;
+    //myfile << "numpoints = 256 dimension = 0 averge" << run_trials(100, 1, 0) << endl;
     // myfile << "numpoints = 128 dimension = 0 averge" << run_trials(128, 5, 0) << endl;
     // myfile << "numpoints = 128 dimension = 2 averge" << run_trials(128, 5, 2) << endl;
     // myfile << "numpoints = 128 dimension = 3 averge" << run_trials(128, 5, 3) << endl;
     // myfile << "numpoints = 128 dimension = 4 averge" << run_trials(128, 5, 4) << endl;
     //myfile << "numpoints = 256 dimension = 0 averge" << run_trials(256, 1, 0) << endl;
-    // myfile << "numpoints = 256 dimension = 2 averge" << run_trials(256, 5, 2) << endl;
+    //myfile << "numpoints = 256 dimension = 2 averge" << run_trials(256, 5, 2) << endl;
     // myfile << "numpoints = 256 dimension = 3 averge" << run_trials(256, 5, 3) << endl;
     // myfile << "numpoints = 256 dimension = 4 averge" << run_trials(256, 5, 4) << endl;
     // myfile << "numpoints = 512 dimension = 0 averge" << run_trials(512, 5, 0) << endl;
@@ -487,7 +546,7 @@ int main() {
     // myfile << "numpoints = 262144 dimension = 3 averge" << run_trials(262144, 5, 3) << endl;
     // myfile << "numpo ints = 262144 dimension = 4 averge" << run_trials(262144, 5, 4) << endl;
     myfile.close();
-    return 0;
+    // return 0;
     // ofstream myfile;
     // myfile.open("data_generation.txt");
     // int numpoints = 100000;
@@ -622,6 +681,8 @@ int main() {
 //     {0.7, 0.8}
 //     };
 
+//printf("MST cost: %f", eager_Prims(256, graph_md(2, 256), 2));
 //     float cool = eager_Prims(4, testing, 2);
 //     printf("mst cost %f", cool);
 }
+
