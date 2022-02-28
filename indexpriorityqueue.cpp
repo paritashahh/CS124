@@ -42,19 +42,6 @@ class IndexPrioQueue {
     vector<int> pm;
     vector<tuple<int, int, float> > values;
 
-
-    int left_child(int i) {
-        return (2 * i) + 1;
-    }
-
-    int right_child(int i) {
-        return (2 * i) + 2;
-    }
-
-    int parent(int i) {
-        return (i - 1) / 2;
-    }
-
     void swap(int i, int j) {
         int temp = im[i];
         im[i] = im[j]; 
@@ -70,27 +57,40 @@ class IndexPrioQueue {
         }
     } 
 
-//swap with smaller of 2 children until not larger than any children
-    void shift_down(int i) {
-        while (i * 2 <= SZ) {
-            int left = left_child(i);
-            int right = right_child(i);
-            int swap_node = i * 2;
-            if (swap_node <= SZ && get<2>(values[im[right]]) > get<2>(values[im[left]])) {
-                //swap with left child
-                swap_node++;
-            }
-            else {
-                //swap with right child
-                swap_node = swap_node + 2;
-            }
-            if (get<2>(values[im[i]]) <= get<2>(values[im[left]]) && get<2>(values[im[i]]) <= get<2>(values[im[right]])) {
+    void shift_down(int k)  {
+        int j;
+        while(2*k <= SZ) {
+            j = 2*k;
+            if(j < SZ && values[im[j]] > values[im[j+1]])
+                j++;
+            if(values[im[k]] <= values[im[j]])
                 break;
-            }
-            swap(i, swap_node);
-            i = swap_node;
+            swap(k, j);
+            k = j;
         }
     }
+
+//swap with smaller of 2 children until not larger than any children
+    // void shift_down(int i) {
+    //     while (i * 2 <= SZ) {
+    //         int left = left_child(i);
+    //         int right = right_child(i);
+    //         int swap_node = i * 2;
+    //         if (swap_node <= SZ && get<2>(values[im[right]]) > get<2>(values[im[left]])) {
+    //             //swap with left child
+    //             swap_node++;
+    //         }
+    //         else {
+    //             //swap with right child
+    //             swap_node = swap_node + 2;
+    //         }
+    //         if (get<2>(values[im[i]]) <= get<2>(values[im[left]]) && get<2>(values[im[i]]) <= get<2>(values[im[right]])) {
+    //             break;
+    //         }
+    //         swap(i, swap_node);
+    //         i = swap_node;
+    //     }
+    // }
 
 public:
     //constructor
@@ -140,7 +140,7 @@ public:
         pm[ki] = SZ;
         im[SZ] = ki;
         values[ki] = make_tuple(i, ki, value);
-        shift_up(SZ);
+        //shift_up(SZ);
     }
 
     //remove top element from priority queue
@@ -371,10 +371,12 @@ IndexPrioQueue relax(int s, int numpoints, bool visited[], IndexPrioQueue prioqu
             continue;
             }
             if (!prioqueue.contains(destNode)) {
+                printf("am i here");
                 prioqueue.insert(s, destNode, val);
             }
             else {
                  prioqueue.decreaseKey(s, destNode, val);
+                 printf("dowwefs");
             }
         }
         return prioqueue;
@@ -401,7 +403,6 @@ float eager_Prims(int numpoints, vector<vector<float> > graph, int dim) {
     vector<tuple<int, int, float> > mstEdges(m);
     int s = 0;
         prioqueue = relax(s, numpoints, visited, prioqueue, graph, dim);
-
         while (!prioqueue.is_empty() and edge_count != m) {
             tuple<int, int, float> deq = prioqueue.dequeue();
             // int srcNode = get<0>(deq);
@@ -411,6 +412,7 @@ float eager_Prims(int numpoints, vector<vector<float> > graph, int dim) {
 
             mstEdges.push_back(deq);
             mst_cost += edge;
+            edge_count++;
 
         prioqueue = relax(destNode, numpoints, visited, prioqueue, graph, dim);
         }
@@ -470,10 +472,9 @@ float run_trials (int numpoints, int numtrials, int dimension) {
 }
 
 int main() {
-
     // print_graph(graph(1, 262144));
     // print_graph(graph(4, 262144));
-    eager_Prims(3000, graph(2, 3000), 2);
+   // eager_Prims(3000000, graph(2, 3000), 2);
 //        vector<int> im;
 //     vector<int> pm;
 //     vector<tuple<int, int, float> > values;

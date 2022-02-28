@@ -6,6 +6,9 @@ all: randmst
 randmst:
 	$(CC) $(CFLAGS) indexpriorityqueue.cpp
 
+new:
+	$(CC) $(CFLAGS) justprims.cpp
+
 clean: 
-	rm *.o indexpriorityqueue.cpp
+	rm *.o indexpriorityqueue.cpp justprims.cpp
 	
