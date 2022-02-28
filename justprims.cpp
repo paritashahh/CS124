@@ -17,6 +17,8 @@
 #include <stdio.h>    
 #include <math.h>  
 #include <cmath>
+#include <assert.h> 
+#include <unordered_map>
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::seconds;
@@ -28,7 +30,7 @@ long getTime() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
-
+//Create a MinHeap Priority Queue that uses Edge Weights to determine Vertex Priority
 class MinHeapPQ {
 
     vector<int> expl_vertices;
@@ -90,7 +92,6 @@ public:
                 Swap(0, 1);
             }
         }
-       // printf("current index %d and parent dist %f and parent index %d\n", i, dist[parent(i)], parent(i));
         if (i && dist[parent(i)] > dist[i]) {
             Swap(parent(i), i);
             BubbleUp(parent(i));
@@ -131,11 +132,19 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
+//check if euclidian distance is less than the threshold value
 bool threshold_check (int numpoints, int dim, float val) {
     float threshold = pow((1.0/numpoints),(1.0/dim)); 
     float margin = 3.0;
     return val > (margin * threshold);
 }
+
+//check if euclidian distance is less than the threshold value
+bool othreshold_check (float val) {
+    float threshold = 0.05;
+    return val > threshold;
+}
+
 //generate random sample 
 float rand_sample() {
 	return ((float) rand() / (float) RAND_MAX);
@@ -180,29 +189,19 @@ int vertices;
 float max_flt = INFINITY;
 int min_vertex;
 
-void trial () {
-    MinHeapPQ prioqueue(5);
-    prioqueue.Insert(0);
-    prioqueue.Insert(1);
-    prioqueue.Insert(2);
-    prioqueue.Insert(3);
-    prioqueue.Insert(4);
-    prioqueue.dist[0] = 0;
-    prioqueue.dist[1] = 1;
-    prioqueue.dist[2] = 2;
-    prioqueue.dist[3] = 3;
-    prioqueue.dist[4] = 4;
-     while (!prioqueue.Empty()) {
-        printf("del node val %d\n", prioqueue.GetMin());
-        //printf("del node index %d\n", prioqueue.GetMin());
-        prioqueue.DeleteMin();
-        //printf("del node new val %f\n", prioqueue.dist[0]);
+struct hash_pair {
+    template <class T1, class T2>
+    size_t operator()(const pair<T1, T2>& p) const
+    {
+        auto hash1 = hash<T1>{}(p.first);
+        auto hash2 = hash<T2>{}(p.second);
+        return hash1 ^ hash2;
     }
-}
+};
 
+unordered_map<pair<int, int>, float, hash_pair> edge_pair;
 
 float prims (vector<vector<float> > graph, int numpoints, int dimension) {
-    //this is my priority queue here
     MinHeapPQ prioqueue(numpoints);
     int prev[numpoints];
     bool visited[numpoints];
@@ -220,30 +219,37 @@ float prims (vector<vector<float> > graph, int numpoints, int dimension) {
 
     while(edgeCount != numpoints - 1) {
         if (prioqueue.Size() != 0) {
-           // printf("size is %d\n", prioqueue.Size());
             v = prioqueue.GetMin();
-            // printf("min vertex is %d\n", v);
             prioqueue.DeleteMin();
-            // printf("now min vertex is %d\n", prioqueue.GetMin());
-            //printf("mst edge from vertex %d to vertex %d\n", v, prev[v]);
             visited[v] = true;
             mstCost += prioqueue.dist[v];
-            //printf("added edge to %d with value %f to the MST\n", v, prioqueue.dist[v]);
             edgeCount++;
         }
        for (int i = 1; i < numpoints; i++) {
-            float edge_dist = eucl_dist(graph[v], graph[i], dimension);
+           float edge_dist = 0;
+           if (dimension == 1) {
+               auto it = edge_pair.find(make_pair(i, v));
+               if (it != edge_pair.end()) {
+                   edge_dist = it->second;
+               }
+               else {
+                   edge_dist = rand_sample();
+                   if (!othreshold_check(edge_dist)) {
+                       edge_pair.insert(make_pair(make_pair(v, i), edge_dist));
+                   }
+               }
+           }
+           else {
+               edge_dist = eucl_dist(graph[v], graph[i], dimension);
+           }
             ///might need to reconsider WHEN we are pruning here!!!
             if (i == v || visited[i] || threshold_check(numpoints, dimension, edge_dist)) {
                continue;
             }
-            //printf("calculated distance to vertex %d: from vertex %d is %f\n", i, v, edge_dist);
             if (!prioqueue.Contains(i))  {
                 prioqueue.dist[i] = edge_dist;
                 prev[i] = v;
                 prioqueue.Insert(i);
-               // printf("added vertex %d with edge weight %f\n", i, prioqueue.dist[i]);
-               // printf("this is min vertex %d with weight %f in prioqueue rn\n", prioqueue.GetMin(), prioqueue.dist[prioqueue.GetMin()]);
             }
             else if (prioqueue.dist[i] > edge_dist) {
                 prioqueue.dist[i] = edge_dist;
@@ -252,9 +258,6 @@ float prims (vector<vector<float> > graph, int numpoints, int dimension) {
            }
        }
     }
-    // for (int i = 0; i < prioqueue.dist.size(); i++) {
-    //     printf("value at index %d is %f\n", i, prioqueue.dist[i]);
-    // }
     assert (edgeCount == numpoints - 1);
     return mstCost;
 }
@@ -289,7 +292,7 @@ float run_trials (int numpoints, int dimension, int numtrials) {
 }
 
 int main () {
-    printf("2D Trials in order from smallest numpoints to largest");
+    printf("2D Trials in order from smallest numpoints to largest\n");
     printf("%f\n", run_trials(128, 2, 5));
     printf("%f\n", run_trials(256, 2, 5));
     printf("%f\n", run_trials(512, 2, 5));
@@ -302,6 +305,11 @@ int main () {
     printf("%f\n", run_trials(65536, 2, 5));
     printf("%f\n", run_trials(131072, 2, 5));
     printf("%f\n", run_trials(262144, 2, 5));
+    return 0;
+}
+
+
+//test cases
     // vector<vector<float> > testing{{0.1, 0.2, 0.3},
     // {0.25, 0.35, 0.36}, 
     // {0.44, 0.15, 0.22}, 
@@ -328,5 +336,3 @@ int main () {
 
     // float triad = prims(testing3, 3, 3);
     // printf("triad mst cost %f\n", triad);
-    return 0;
-}
